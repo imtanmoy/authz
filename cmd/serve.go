@@ -6,10 +6,11 @@ import (
 	"os/signal"
 	"syscall"
 
+	"github.com/spf13/cobra"
+
 	"github.com/imtanmoy/authz/db"
 	"github.com/imtanmoy/authz/logger"
 	"github.com/imtanmoy/authz/server"
-	"github.com/spf13/cobra"
 )
 
 func init() {

@@ -2,12 +2,13 @@ package server
 
 import (
 	"context"
-	"github.com/imtanmoy/authz/config"
-	"github.com/imtanmoy/authz/db"
-	"github.com/imtanmoy/authz/logger"
 	"net/http"
 	"strconv"
 	"time"
+
+	"github.com/imtanmoy/authz/config"
+	"github.com/imtanmoy/authz/db"
+	"github.com/imtanmoy/authz/logger"
 )
 
 // Server provides an http.Server.

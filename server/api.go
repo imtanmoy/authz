@@ -7,6 +7,9 @@ import (
 	"github.com/go-chi/chi"
 	"github.com/go-chi/chi/middleware"
 	"github.com/go-chi/render"
+	
+	"github.com/imtanmoy/authz/db"
+	"github.com/imtanmoy/authz/organizations"
 )
 
 // New configures application resources and routes.
@@ -29,6 +32,22 @@ func New() (*chi.Mux, error) {
 	})
 
 	//routes.Routes(r)
+	r.Mount("/organizations", organizationRouter())
 
 	return r, nil
+}
+
+func organizationRouter() http.Handler {
+	r := chi.NewRouter()
+	organizationHandler := organizations.NewOrganizationHandler(db.DB)
+
+	r.Group(func(r chi.Router) {
+		r.Get("/", organizationHandler.List)
+		r.Post("/", organizationHandler.Create)
+		r.Get("/{id}", organizationHandler.Get)
+		r.Put("/{id}", organizationHandler.Update)
+		r.Delete("/{id}", organizationHandler.Delete)
+	})
+
+	return r
 }

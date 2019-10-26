@@ -2,9 +2,10 @@ package config
 
 import (
 	"fmt"
-	"github.com/spf13/viper"
 	"log"
 	"strings"
+
+	"github.com/spf13/viper"
 )
 
 // Config contains env variables

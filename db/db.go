@@ -1,9 +1,11 @@
 package db
 
 import (
-	"github.com/go-pg/pg/v9"
-	"github.com/imtanmoy/authz/config"
 	"strconv"
+
+	"github.com/go-pg/pg/v9"
+
+	"github.com/imtanmoy/authz/config"
 )
 
 var DB *pg.DB

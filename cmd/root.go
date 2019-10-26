@@ -2,12 +2,13 @@ package cmd
 
 import (
 	"fmt"
-	"github.com/imtanmoy/authz/config"
-	"github.com/imtanmoy/authz/logger"
 	"log"
 	"os"
 
 	"github.com/spf13/cobra"
+
+	"github.com/imtanmoy/authz/config"
+	"github.com/imtanmoy/authz/logger"
 )
 
 func init() {
