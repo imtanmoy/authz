@@ -42,7 +42,7 @@ build: dep
 	@go build $(LDFLAGS) -i -o $(BUILD_DIR)/$(BIN_FILE) $(SRC_DIR)/main.go
 	@echo "Finish..."
 
-clean:
+rm:
 	@rm -rf $(BIN_DIR)/$(BIN_FILE)
 	@rm -rf $(BUILD_DIR)
 	@rm -rf pkg/
@@ -60,8 +60,8 @@ uninstall:
 	@rm -f $$(which $(BIN_FILE))
 # 	@rm -f /etc/microservice-email.yml
 
-run: build
-	$(BUILD_DIR)/$(BIN_FILE) consume
+run: rm build
+	$(BUILD_DIR)/$(BIN_FILE) serve
 
 # -------------------------------------------------------------------
 # -								Docker								-
@@ -79,12 +79,12 @@ docker_run:
 
 up: ## Start the container
 	@echo "Starting Container"
-	@$(DOCKER_COMMAND) up -d --build
+	@$(DOCKER_COMPOSE_CMD) up -d --build
 
 down: ## Bring Down the container
 	@echo "Stopping Container"
-	@$(DOCKER_COMMAND) down
+	@$(DOCKER_COMPOSE_CMD) down
 
 clean: ## Remove the container with volume
 	@echo "Removing Container"
-	@$(DOCKER_COMMAND) down -v
+	@$(DOCKER_COMPOSE_CMD) down -v
