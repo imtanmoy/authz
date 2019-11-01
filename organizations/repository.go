@@ -1,6 +1,7 @@
 package organizations
 
 import (
+	"errors"
 	"github.com/go-pg/pg/v9"
 	"github.com/imtanmoy/authz/models"
 )
@@ -12,6 +13,7 @@ type Repository interface {
 	FirstOrCreate(tx *pg.Tx, organization *models.Organization) (*models.Organization, error)
 	Update(tx *pg.Tx, organization *models.Organization) (*models.Organization, error)
 	Delete(tx *pg.Tx, organization *models.Organization) error
+	Exists(ID int) bool
 }
 
 type organizationRepository struct {
@@ -31,6 +33,9 @@ func (o *organizationRepository) List() ([]*models.Organization, error) {
 }
 
 func (o *organizationRepository) Find(ID int) (*models.Organization, error) {
+	if o.Exists(ID) {
+		return nil, errors.New("organization does not exists")
+	}
 	organization := new(models.Organization)
 	err := o.db.Model(organization).Where("id = ?", ID).Relation("Users").Select()
 	return organization, err
@@ -54,6 +59,15 @@ func (o *organizationRepository) Update(tx *pg.Tx, organization *models.Organiza
 func (o *organizationRepository) Delete(tx *pg.Tx, organization *models.Organization) error {
 	err := o.db.Delete(organization)
 	return err
+}
+
+func (o *organizationRepository) Exists(ID int) bool {
+	var num int
+	_, err := o.db.Query(pg.Scan(&num), "SELECT id from organizations where id = ?", ID)
+	if err != nil {
+		panic(err)
+	}
+	return num == ID
 }
 
 var _ Repository = (*organizationRepository)(nil)

@@ -39,6 +39,15 @@ func ErrInvalidRequest(errors map[string][]string) render.Renderer {
 	}
 }
 
+func ErrInvalidRequestParam() render.Renderer {
+	return &ErrResponse{
+		HTTPStatusCode: 400,
+		Message:        "Invalid request parameter",
+		Code:           400,
+		Errors:         make(map[string][]string),
+	}
+}
+
 func ErrNotFoundRender(err error) render.Renderer {
 	return &ErrResponse{
 		Err:            err,

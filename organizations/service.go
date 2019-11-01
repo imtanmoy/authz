@@ -12,6 +12,7 @@ type Service interface {
 	FirstOrCreate(organization *models.Organization) (*models.Organization, error)
 	Update(organization *models.Organization) (*models.Organization, error)
 	Delete(organization *models.Organization) error
+	Exists(ID int) bool
 }
 
 type organizationService struct {
@@ -28,6 +29,10 @@ func NewOrganizationService(db *pg.DB) Service {
 
 func (o *organizationService) List() ([]*models.Organization, error) {
 	return o.repository.List()
+}
+
+func (o *organizationService) Exists(ID int) bool {
+	return o.repository.Exists(ID)
 }
 
 func (o *organizationService) Find(ID int) (*models.Organization, error) {
