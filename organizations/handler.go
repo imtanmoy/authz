@@ -7,6 +7,7 @@ import (
 	"net/http"
 
 	"github.com/imtanmoy/authz/models"
+	"github.com/imtanmoy/authz/utils/errutil"
 )
 
 type Handler interface {
@@ -32,12 +33,12 @@ func NewOrganizationHandler(db *pg.DB) Handler {
 func (o *organizationHandler) List(w http.ResponseWriter, r *http.Request) {
 	organizations, err := o.service.List()
 	if err != nil {
-		_ = render.Render(w, r, ErrRender(err))
+		_ = render.Render(w, r, errutil.ErrRender(err))
 		return
 	}
 
 	if err := render.RenderList(w, r, NewOrganizationListResponse(organizations)); err != nil {
-		_ = render.Render(w, r, ErrRender(err))
+		_ = render.Render(w, r, errutil.ErrRender(err))
 		return
 	}
 }
@@ -46,14 +47,14 @@ func (o *organizationHandler) Create(w http.ResponseWriter, r *http.Request) {
 
 	data := &OrganizationPayload{}
 	if err := render.Bind(r, data); err != nil {
-		_ = render.Render(w, r, ErrRender(err))
+		_ = render.Render(w, r, errutil.ErrRender(err))
 		return
 	}
 
 	validationErrors := data.validate()
 
 	if len(validationErrors) > 0 {
-		_ = render.Render(w, r, ErrInvalidRequest(validationErrors))
+		_ = render.Render(w, r, errutil.ErrInvalidRequest(validationErrors))
 		return
 	}
 	exist := o.service.Exists(data.ID)
@@ -61,17 +62,17 @@ func (o *organizationHandler) Create(w http.ResponseWriter, r *http.Request) {
 		existErr := map[string][]string{
 			"id": {"Organization with same id already exits"},
 		}
-		_ = render.Render(w, r, ErrInvalidRequest(existErr))
+		_ = render.Render(w, r, errutil.ErrInvalidRequest(existErr))
 		return
 	}
 
 	var organization models.Organization
-	organization.ID = int32(data.ID)
+	organization.ID = data.ID
 	organization.Name = data.Name
 
 	newOrganization, err := o.service.Create(&organization)
 	if err != nil {
-		_ = render.Render(w, r, ErrRender(err))
+		_ = render.Render(w, r, errutil.ErrRender(err))
 		return
 	}
 
@@ -81,74 +82,74 @@ func (o *organizationHandler) Create(w http.ResponseWriter, r *http.Request) {
 }
 
 func (o *organizationHandler) Get(w http.ResponseWriter, r *http.Request) {
-	id, err := param.Int(r, "id")
+	id, err := param.Int32(r, "id")
 	if err != nil {
-		_ = render.Render(w, r, ErrInvalidRequestParam())
+		_ = render.Render(w, r, errutil.ErrInvalidRequestParam())
 		return
 	}
 	organization, err := o.service.Find(id)
 	if err != nil {
-		_ = render.Render(w, r, ErrRender(err))
+		_ = render.Render(w, r, errutil.ErrNotFound("organization not found"))
 		return
 	}
 	if err := render.Render(w, r, NewOrganizationResponse(organization)); err != nil {
-		_ = render.Render(w, r, ErrRender(err))
+		_ = render.Render(w, r, errutil.ErrRender(err))
 		return
 	}
 }
 
 func (o *organizationHandler) Update(w http.ResponseWriter, r *http.Request) {
-	id, err := param.Int(r, "id")
+	id, err := param.Int32(r, "id")
 	if err != nil {
-		_ = render.Render(w, r, ErrInvalidRequestParam())
+		_ = render.Render(w, r, errutil.ErrInvalidRequestParam())
 		return
 	}
 
 	data := &OrganizationPayload{}
 	if err := render.Bind(r, data); err != nil {
-		_ = render.Render(w, r, ErrRender(err))
+		_ = render.Render(w, r, errutil.ErrRender(err))
 		return
 	}
 
 	validationErrors := data.validate()
 
 	if len(validationErrors) > 0 {
-		_ = render.Render(w, r, ErrInvalidRequest(validationErrors))
+		_ = render.Render(w, r, errutil.ErrInvalidRequest(validationErrors))
 		return
 	}
 
 	organization, err := o.service.Find(id)
 	if err != nil {
-		_ = render.Render(w, r, ErrRender(err))
+		_ = render.Render(w, r, errutil.ErrNotFound("organization not found"))
 		return
 	}
 
 	organization.Name = data.Name
 	organization, err = o.service.Update(organization)
 	if err != nil {
-		_ = render.Render(w, r, ErrRender(err))
+		_ = render.Render(w, r, errutil.ErrRender(err))
 		return
 	}
 	if err := render.Render(w, r, NewOrganizationResponse(organization)); err != nil {
-		_ = render.Render(w, r, ErrRender(err))
+		_ = render.Render(w, r, errutil.ErrRender(err))
 		return
 	}
 }
 
 func (o *organizationHandler) Delete(w http.ResponseWriter, r *http.Request) {
-	id, err := param.Int(r, "id")
+	id, err := param.Int32(r, "id")
 	if err != nil {
-		_ = render.Render(w, r, ErrInvalidRequestParam())
+		_ = render.Render(w, r, errutil.ErrInvalidRequestParam())
 		return
 	}
 	organization, err := o.service.Find(id)
 	if err != nil {
-		_ = render.Render(w, r, ErrRender(err))
+		_ = render.Render(w, r, errutil.ErrNotFound("organization not found"))
 		return
 	}
 	err = o.service.Delete(organization)
 	if err != nil {
-		_ = render.Render(w, r, ErrRender(err))
+		_ = render.Render(w, r, errutil.ErrRender(err))
 		return
 	}
 	render.NoContent(w, r)

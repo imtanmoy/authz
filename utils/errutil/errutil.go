@@ -1,4 +1,4 @@
-package organizations
+package errutil
 
 import (
 	"net/http"
@@ -12,7 +12,7 @@ type ErrResponse struct {
 
 	Message string              `json:"message"`          // user-level status message
 	Code    int                 `json:"code"`             // application-specific error code
-	Errors  map[string][]string `json:"errors,omitempty"` // application-level error message, for debugging
+	Errors  map[string][]string `json:"errors"` // application-level error message, for debugging
 }
 
 func (e *ErrResponse) Render(w http.ResponseWriter, r *http.Request) error {
@@ -48,11 +48,10 @@ func ErrInvalidRequestParam() render.Renderer {
 	}
 }
 
-func ErrNotFoundRender(err error) render.Renderer {
+func ErrNotFound(message string) render.Renderer {
 	return &ErrResponse{
-		Err:            err,
 		HTTPStatusCode: 404,
-		Message:        err.Error(),
+		Message:        message,
 		Code:           404,
 		Errors:         make(map[string][]string),
 	}

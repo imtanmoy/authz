@@ -8,12 +8,12 @@ import (
 
 type Repository interface {
 	List() ([]*models.Organization, error)
-	Find(ID int) (*models.Organization, error)
+	Find(id int32) (*models.Organization, error)
 	Create(tx *pg.Tx, organization *models.Organization) (*models.Organization, error)
 	FirstOrCreate(tx *pg.Tx, organization *models.Organization) (*models.Organization, error)
 	Update(tx *pg.Tx, organization *models.Organization) (*models.Organization, error)
 	Delete(tx *pg.Tx, organization *models.Organization) error
-	Exists(ID int) bool
+	Exists(ID int32) bool
 }
 
 type organizationRepository struct {
@@ -32,12 +32,12 @@ func (o *organizationRepository) List() ([]*models.Organization, error) {
 	return organizations, err
 }
 
-func (o *organizationRepository) Find(ID int) (*models.Organization, error) {
-	if o.Exists(ID) {
-		return nil, errors.New("organization does not exists")
+func (o *organizationRepository) Find(id int32) (*models.Organization, error) {
+	if !o.Exists(id) {
+		return nil, errors.New("organization does not exist")
 	}
 	organization := new(models.Organization)
-	err := o.db.Model(organization).Where("id = ?", ID).Relation("Users").Select()
+	err := o.db.Model(organization).Where("id = ?", id).Relation("Users").Select()
 	return organization, err
 }
 
@@ -61,13 +61,13 @@ func (o *organizationRepository) Delete(tx *pg.Tx, organization *models.Organiza
 	return err
 }
 
-func (o *organizationRepository) Exists(ID int) bool {
-	var num int
-	_, err := o.db.Query(pg.Scan(&num), "SELECT id from organizations where id = ?", ID)
+func (o *organizationRepository) Exists(id int32) bool {
+	var num int32
+	_, err := o.db.Query(pg.Scan(&num), "SELECT id from organizations where id = ?", id)
 	if err != nil {
 		panic(err)
 	}
-	return num == ID
+	return num == id
 }
 
 var _ Repository = (*organizationRepository)(nil)

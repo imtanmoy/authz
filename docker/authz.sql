@@ -8,7 +8,7 @@ CREATE TABLE users
 (
     id              INTEGER PRIMARY KEY NOT NULL,
     email           VARCHAR(255)        NOT NULL,
-    organization_id INTEGER
+    organization_id INTEGER             NOT NULL
 );
 
 ALTER TABLE users

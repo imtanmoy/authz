@@ -10,22 +10,22 @@ import (
 	"github.com/imtanmoy/authz/models"
 )
 
-type UserResponse struct {
+type userResponse struct {
 	ID    int32  `json:"id"`
 	Email string `json:"email"`
 }
 
-func (u *UserResponse) Render(w http.ResponseWriter, r *http.Request) error {
+func (u *userResponse) Render(w http.ResponseWriter, r *http.Request) error {
 	return nil
 }
 
-func NewUserResponse(user *models.User) *UserResponse {
-	resp := &UserResponse{ID: user.ID, Email: user.Email}
+func NewUserResponse(user *models.User) *userResponse {
+	resp := &userResponse{ID: user.ID, Email: user.Email}
 	return resp
 }
 
 type OrganizationPayload struct {
-	ID   int    `json:"id"`
+	ID   int32  `json:"id"`
 	Name string `json:"name"`
 }
 
@@ -51,18 +51,18 @@ func (o *OrganizationPayload) validate() url.Values {
 type OrganizationResponse struct {
 	ID    int32           `json:"id"`
 	Name  string          `json:"name"`
-	Users []*UserResponse `json:"users"`
+	Users []*userResponse `json:"users"`
 }
 
 func (o *OrganizationResponse) Render(w http.ResponseWriter, r *http.Request) error {
 	if o.Users == nil {
-		o.Users = make([]*UserResponse, 0)
+		o.Users = make([]*userResponse, 0)
 	}
 	return nil
 }
 
 func NewOrganizationResponse(organization *models.Organization) *OrganizationResponse {
-	var list []*UserResponse
+	var list []*userResponse
 	for _, user := range organization.Users {
 		list = append(list, NewUserResponse(user))
 	}

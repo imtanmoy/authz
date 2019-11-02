@@ -7,12 +7,12 @@ import (
 
 type Service interface {
 	List() ([]*models.Organization, error)
-	Find(ID int) (*models.Organization, error)
+	Find(id int32) (*models.Organization, error)
 	Create(organization *models.Organization) (*models.Organization, error)
 	FirstOrCreate(organization *models.Organization) (*models.Organization, error)
 	Update(organization *models.Organization) (*models.Organization, error)
 	Delete(organization *models.Organization) error
-	Exists(ID int) bool
+	Exists(id int32) bool
 }
 
 type organizationService struct {
@@ -31,12 +31,12 @@ func (o *organizationService) List() ([]*models.Organization, error) {
 	return o.repository.List()
 }
 
-func (o *organizationService) Exists(ID int) bool {
-	return o.repository.Exists(ID)
+func (o *organizationService) Exists(id int32) bool {
+	return o.repository.Exists(id)
 }
 
-func (o *organizationService) Find(ID int) (*models.Organization, error) {
-	return o.repository.Find(ID)
+func (o *organizationService) Find(id int32) (*models.Organization, error) {
+	return o.repository.Find(id)
 }
 
 func (o *organizationService) Create(organization *models.Organization) (*models.Organization, error) {
