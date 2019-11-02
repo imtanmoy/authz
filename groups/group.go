@@ -33,6 +33,20 @@ func (g *GroupPayload) validate() url.Values {
 	return e
 }
 
+type userResponse struct {
+	ID    int32  `json:"id"`
+	Email string `json:"email"`
+}
+
+func (u *userResponse) Render(w http.ResponseWriter, r *http.Request) error {
+	return nil
+}
+
+func NewUserResponse(user *models.User) *userResponse {
+	resp := &userResponse{ID: user.ID, Email: user.Email}
+	return resp
+}
+
 type organizationResponse struct {
 	ID   int32  `json:"id"`
 	Name string `json:"name"`
@@ -43,6 +57,7 @@ type GroupResponse struct {
 	Name         string                `json:"name"`
 	CreatedAt    time.Time             `json:"created_at"`
 	Organization *organizationResponse `json:"organization"`
+	Users        []*userResponse       `json:"users"`
 }
 
 func (g *GroupResponse) Render(w http.ResponseWriter, r *http.Request) error {
@@ -50,10 +65,15 @@ func (g *GroupResponse) Render(w http.ResponseWriter, r *http.Request) error {
 }
 
 func NewGroupResponse(group *models.Group) *GroupResponse {
+	var users []*userResponse
+	for _, user := range group.Users {
+		users = append(users, NewUserResponse(user))
+	}
 	return &GroupResponse{
 		ID:        group.ID,
 		Name:      group.Name,
 		CreatedAt: group.CreatedAt,
+		Users:     users,
 		Organization: &organizationResponse{
 			ID:   group.Organization.ID,
 			Name: group.Organization.Name,
