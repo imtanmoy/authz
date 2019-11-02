@@ -10,9 +10,9 @@ type ErrResponse struct {
 	Err            error `json:"-"` // low-level runtime error
 	HTTPStatusCode int   `json:"-"` // http response status code
 
-	Message string              `json:"message"`          // user-level status message
-	Code    int                 `json:"code"`             // application-specific error code
-	Errors  map[string][]string `json:"errors"` // application-level error message, for debugging
+	Code    int                 `json:"code"`    // application-specific error code
+	Message string              `json:"message"` // user-level status message
+	Errors  map[string][]string `json:"errors"`  // application-level error message, for debugging
 }
 
 func (e *ErrResponse) Render(w http.ResponseWriter, r *http.Request) error {
@@ -53,6 +53,15 @@ func ErrNotFound(message string) render.Renderer {
 		HTTPStatusCode: 404,
 		Message:        message,
 		Code:           404,
+		Errors:         make(map[string][]string),
+	}
+}
+
+func ErrUnprocessableEntity() render.Renderer {
+	return &ErrResponse{
+		HTTPStatusCode: 422,
+		Message:        "Request Can not be processed",
+		Code:           422,
 		Errors:         make(map[string][]string),
 	}
 }

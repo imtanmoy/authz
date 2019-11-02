@@ -10,8 +10,9 @@ import (
 )
 
 type GroupPayload struct {
-	Name           string `json:"name"`
-	OrganizationID int32  `json:"organization_id"`
+	Name        string  `json:"name"`
+	Permissions []int32 `json:"permissions"`
+	Users       []int32 `json:"users"`
 }
 
 func (g *GroupPayload) Bind(r *http.Request) error {
@@ -20,8 +21,7 @@ func (g *GroupPayload) Bind(r *http.Request) error {
 
 func (g *GroupPayload) validate() url.Values {
 	rules := govalidator.MapData{
-		"name":            []string{"required"},
-		"organization_id": []string{"required"},
+		"name": []string{"required"},
 	}
 	opts := govalidator.Options{
 		Data:  g,

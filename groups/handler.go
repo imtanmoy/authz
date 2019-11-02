@@ -1,15 +1,19 @@
 package groups
 
 import (
+	"context"
 	"github.com/go-chi/render"
 	"github.com/go-pg/pg/v9"
 	"github.com/imtanmoy/authz/models"
 	"github.com/imtanmoy/authz/organizations"
 	"github.com/imtanmoy/authz/utils/errutil"
+	param "github.com/oceanicdev/chi-param"
 	"net/http"
+	"strings"
 )
 
 type Handler interface {
+	OrganizationCtx(next http.Handler) http.Handler
 	List(w http.ResponseWriter, r *http.Request)
 	Create(w http.ResponseWriter, r *http.Request)
 }
@@ -30,8 +34,31 @@ func NewGroupHandler(db *pg.DB) Handler {
 	}
 }
 
+func (g *groupHandler) OrganizationCtx(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		oid, err := param.Int32(r, "oid")
+		if err != nil {
+			_ = render.Render(w, r, errutil.ErrInvalidRequestParam())
+			return
+		}
+		organization, err := g.organizationService.Find(oid)
+		if err != nil {
+			_ = render.Render(w, r, errutil.ErrNotFound("organization not found"))
+			return
+		}
+		ctx := context.WithValue(r.Context(), "organization", organization)
+		next.ServeHTTP(w, r.WithContext(ctx))
+	})
+}
+
 func (g *groupHandler) List(w http.ResponseWriter, r *http.Request) {
-	groups, err := g.service.List()
+	ctx := r.Context()
+	organization, ok := ctx.Value("organization").(*models.Organization)
+	if !ok {
+		_ = render.Render(w, r, errutil.ErrUnprocessableEntity())
+		return
+	}
+	groups, err := g.service.List(organization)
 	if err != nil {
 		_ = render.Render(w, r, errutil.ErrRender(err))
 		return
@@ -43,6 +70,12 @@ func (g *groupHandler) List(w http.ResponseWriter, r *http.Request) {
 }
 
 func (g *groupHandler) Create(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	organization, ok := ctx.Value("organization").(*models.Organization)
+	if !ok {
+		_ = render.Render(w, r, errutil.ErrUnprocessableEntity())
+		return
+	}
 	data := &GroupPayload{}
 	if err := render.Bind(r, data); err != nil {
 		_ = render.Render(w, r, errutil.ErrRender(err))
@@ -55,42 +88,35 @@ func (g *groupHandler) Create(w http.ResponseWriter, r *http.Request) {
 		_ = render.Render(w, r, errutil.ErrInvalidRequest(validationErrors))
 		return
 	}
-	orgExist := g.organizationService.Exists(data.OrganizationID)
+	existGroup, err := g.service.FindByName(organization, data.Name)
 	existErr := make(map[string][]string)
-	//if exist {
-	//	existErr = map[string][]string{
-	//		"id": {"User with same id already exits"},
-	//	}
-	//}
-	if !orgExist {
+	if err == nil && existGroup.Name == data.Name {
 		existErr = map[string][]string{
-			"organization_id": {"organization does not exist"},
+			"name": {"Group with same name already exits"},
 		}
 	}
 	if len(existErr) > 0 {
 		_ = render.Render(w, r, errutil.ErrInvalidRequest(existErr))
 		return
 	}
+	if err != nil && strings.Contains(err.Error(), "no rows in result set") {
+		var group models.Group
+		group.Name = data.Name
+		group.Organization = organization
+		group.OrganizationID = organization.ID
 
-	organization, err := g.organizationService.Find(data.OrganizationID)
-	if err != nil {
+		newGroup, err := g.service.Create(&group)
+
+		if err != nil {
+			_ = render.Render(w, r, errutil.ErrRender(err))
+			return
+		}
+
+		render.Status(r, http.StatusCreated)
+		_ = render.Render(w, r, NewGroupResponse(newGroup))
+		return
+	} else {
 		_ = render.Render(w, r, errutil.ErrRender(err))
 		return
 	}
-
-	var group models.Group
-	group.Name = data.Name
-	group.Organization = organization
-	group.OrganizationID = organization.ID
-
-	newGroup, err := g.service.Create(&group)
-
-	if err != nil {
-		_ = render.Render(w, r, errutil.ErrRender(err))
-		return
-	}
-
-	render.Status(r, http.StatusCreated)
-	_ = render.Render(w, r, NewGroupResponse(newGroup))
-	return
 }

@@ -36,7 +36,7 @@ func New() (*chi.Mux, error) {
 	//routes.Routes(r)
 	r.Mount("/organizations", organizationRouter())
 	r.Mount("/users", userRouter())
-	r.Mount("/groups", groupRouter())
+	r.Mount("/{oid}/groups", groupRouter())
 
 	return r, nil
 }
@@ -74,6 +74,7 @@ func userRouter() http.Handler {
 func groupRouter() http.Handler {
 	r := chi.NewRouter()
 	groupHandler := groups.NewGroupHandler(db.DB)
+	r.Use(groupHandler.OrganizationCtx)
 
 	r.Group(func(r chi.Router) {
 		r.Get("/", groupHandler.List)
