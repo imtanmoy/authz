@@ -81,13 +81,21 @@ func (g *groupHandler) Create(w http.ResponseWriter, r *http.Request) {
 		_ = render.Render(w, r, errutil.ErrRender(err))
 		return
 	}
-
+	// request validation
 	validationErrors := data.validate()
-
 	if len(validationErrors) > 0 {
 		_ = render.Render(w, r, errutil.ErrInvalidRequest(validationErrors))
 		return
 	}
+
+	// check if users belongs to the organization
+	users, _ := g.organizationService.FindUsersByIds(organization, data.Users)
+	if len(users) != len(data.Users) {
+		_ = render.Render(w, r, errutil.ErrInvalidRequestParamWithMsg("invalid users list"))
+		return
+	}
+
+	// check if group with same name already exist
 	existGroup, err := g.service.FindByName(organization, data.Name)
 	existErr := make(map[string][]string)
 	if err == nil && existGroup.Name == data.Name {

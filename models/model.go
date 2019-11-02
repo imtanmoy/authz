@@ -2,7 +2,6 @@ package models
 
 import (
 	"context"
-	"fmt"
 	"github.com/go-pg/pg/v9/orm"
 	"time"
 )
@@ -40,6 +39,5 @@ func (g *Group) BeforeInsert(ctx context.Context) (context.Context, error) {
 }
 
 func (g *Group) AfterInsert(ctx context.Context) error {
-	fmt.Println(g.ID)
 	return nil // here we can update the cache
 }

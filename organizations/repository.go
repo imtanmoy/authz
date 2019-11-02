@@ -14,11 +14,14 @@ type Repository interface {
 	Update(tx *pg.Tx, organization *models.Organization) (*models.Organization, error)
 	Delete(tx *pg.Tx, organization *models.Organization) error
 	Exists(ID int32) bool
+	FindUsersByIds(organization *models.Organization, ids []int32) ([]*models.User, error)
 }
 
 type organizationRepository struct {
 	db *pg.DB
 }
+
+var _ Repository = (*organizationRepository)(nil)
 
 func NewOrganizationRepository(db *pg.DB) Repository {
 	return &organizationRepository{
@@ -70,4 +73,11 @@ func (o *organizationRepository) Exists(id int32) bool {
 	return num == id
 }
 
-var _ Repository = (*organizationRepository)(nil)
+func (o *organizationRepository) FindUsersByIds(organization *models.Organization, ids []int32) ([]*models.User, error) {
+	var users []*models.User
+	err := o.db.Model(&users).
+		Where("id in (?)", pg.In(ids)).
+		Where("organization_id = ? ", organization.ID).
+		Select()
+	return users, err
+}

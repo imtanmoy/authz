@@ -48,6 +48,15 @@ func ErrInvalidRequestParam() render.Renderer {
 	}
 }
 
+func ErrInvalidRequestParamWithMsg(message string) render.Renderer {
+	return &ErrResponse{
+		HTTPStatusCode: 400,
+		Message:        message,
+		Code:           400,
+		Errors:         make(map[string][]string),
+	}
+}
+
 func ErrNotFound(message string) render.Renderer {
 	return &ErrResponse{
 		HTTPStatusCode: 404,

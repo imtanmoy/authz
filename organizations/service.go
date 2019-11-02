@@ -13,12 +13,15 @@ type Service interface {
 	Update(organization *models.Organization) (*models.Organization, error)
 	Delete(organization *models.Organization) error
 	Exists(id int32) bool
+	FindUsersByIds(organization *models.Organization, ids []int32) ([]*models.User, error)
 }
 
 type organizationService struct {
 	db         *pg.DB
 	repository Repository
 }
+
+var _ Service = (*organizationService)(nil)
 
 func NewOrganizationService(db *pg.DB) Service {
 	return &organizationService{
@@ -61,4 +64,6 @@ func (o *organizationService) Delete(organization *models.Organization) error {
 	return o.repository.Delete(tx, organization)
 }
 
-var _ Service = (*organizationService)(nil)
+func (o *organizationService) FindUsersByIds(organization *models.Organization, ids []int32) ([]*models.User, error) {
+	return o.repository.FindUsersByIds(organization, ids)
+}
