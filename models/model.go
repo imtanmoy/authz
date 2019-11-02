@@ -9,7 +9,7 @@ import (
 func init() {
 	// Register many to many model so ORM can better recognize m2m relation.
 	// This should be done before dependant models are used.
-	//orm.RegisterTable((*UserGroup)(nil))
+	orm.RegisterTable((*UserGroup)(nil))
 }
 
 type Organization struct {
@@ -23,7 +23,7 @@ type User struct {
 	Email          string `pg:"email,notnull,unique"`
 	OrganizationID int32  `pg:"organization_id,notnull"`
 	Organization   *Organization
-	Groups         []*Group `pg:"many2many:users_groups,fk:user_id"`
+	Groups         []*Group `pg:"many2many:users_groups,fk:user_id,joinFK:group_id"`
 }
 
 type Group struct {
@@ -33,7 +33,7 @@ type Group struct {
 	CreatedAt      time.Time `pg:"created_at,notnull,default:now()"`
 	UpdatedAt      time.Time `pg:"updated_at"`
 	Organization   *Organization
-	Users          []*User `pg:"many2many:users_groups,fk:group_id"`
+	Users          []*User `pg:"many2many:users_groups,fk:group_id,joinFK:user_id"`
 }
 
 var _ orm.BeforeInsertHook = (*Group)(nil)
@@ -50,11 +50,11 @@ func (g *Group) AfterInsert(ctx context.Context) error {
 	return nil // here we can update the cache
 }
 
-//type UserGroup struct {
-//	tableName struct{} `pg:"users_groups"`
-//
-//	UserId  int32 `pg:"user_id,pk,notnull"`
-//	User    *User
-//	GroupId int `pg:"group_id,pk,notnull"`
-//	Group   *Group
-//}
+type UserGroup struct {
+	tableName struct{} `pg:"users_groups"`
+
+	UserId  int32 `pg:"user_id,pk,notnull"`
+	User    *User
+	GroupId int32 `pg:"group_id,pk,notnull"`
+	Group   *Group
+}
