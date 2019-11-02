@@ -1,6 +1,7 @@
 package server
 
 import (
+	"github.com/imtanmoy/authz/groups"
 	"net/http"
 	"time"
 
@@ -35,6 +36,7 @@ func New() (*chi.Mux, error) {
 	//routes.Routes(r)
 	r.Mount("/organizations", organizationRouter())
 	r.Mount("/users", userRouter())
+	r.Mount("/groups", groupRouter())
 
 	return r, nil
 }
@@ -64,6 +66,18 @@ func userRouter() http.Handler {
 		r.Get("/{id}", userHandler.Get)
 		r.Put("/{id}", userHandler.Update)
 		r.Delete("/{id}", userHandler.Delete)
+	})
+
+	return r
+}
+
+func groupRouter() http.Handler {
+	r := chi.NewRouter()
+	groupHandler := groups.NewGroupHandler(db.DB)
+
+	r.Group(func(r chi.Router) {
+		r.Get("/", groupHandler.List)
+		r.Post("/", groupHandler.Create)
 	})
 
 	return r
