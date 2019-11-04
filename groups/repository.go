@@ -30,7 +30,7 @@ func (g *groupRepository) List(organization *models.Organization) ([]*models.Gro
 }
 
 func (g *groupRepository) Create(tx *pg.Tx, group *models.Group) (*models.Group, error) {
-	_, err := g.db.Model(group).Returning("*").Insert()
+	_, err := tx.Model(group).Returning("*").Insert()
 	return group, err
 }
 

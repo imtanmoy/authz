@@ -14,11 +14,14 @@ type Repository interface {
 	Update(tx *pg.Tx, user *models.User) (*models.User, error)
 	Delete(tx *pg.Tx, user *models.User) error
 	Exists(ID int32) bool
+	FindAllByIdIn(ids []int32) []*models.User
 }
 
 type userRepository struct {
 	db *pg.DB
 }
+
+var _ Repository = (*userRepository)(nil)
 
 func NewUserRepository(db *pg.DB) Repository {
 	return &userRepository{
@@ -69,4 +72,10 @@ func (u *userRepository) Exists(ID int32) bool {
 	return num == ID
 }
 
-var _ Repository = (*userRepository)(nil)
+func (u *userRepository) FindAllByIdIn(ids []int32) []*models.User {
+	var users []*models.User
+	_ = u.db.Model(&users). // TODO err handling
+		Where("id in (?)", pg.In(ids)).
+		Select()
+	return users
+}

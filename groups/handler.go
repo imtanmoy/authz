@@ -9,7 +9,6 @@ import (
 	"github.com/imtanmoy/authz/utils/errutil"
 	param "github.com/oceanicdev/chi-param"
 	"net/http"
-	"strings"
 )
 
 type Handler interface {
@@ -107,13 +106,10 @@ func (g *groupHandler) Create(w http.ResponseWriter, r *http.Request) {
 		_ = render.Render(w, r, errutil.ErrInvalidRequest(existErr))
 		return
 	}
-	if err != nil && strings.Contains(err.Error(), "no rows in result set") {
-		var group models.Group
-		group.Name = data.Name
-		group.Organization = organization
-		group.OrganizationID = organization.ID
 
-		newGroup, err := g.service.Create(&group)
+	// more ways https://stackoverflow.com/questions/31565505/get-error-code-number-from-postgres-in-go
+	if err != nil && err == pg.ErrNoRows {
+		newGroup, err := g.service.Create(data, organization)
 
 		if err != nil {
 			_ = render.Render(w, r, errutil.ErrRender(err))
