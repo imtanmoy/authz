@@ -1,6 +1,7 @@
 package adapter
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 
@@ -28,14 +29,27 @@ type CasbinRule struct {
 	V5    string `pg:"v5"`
 }
 
-type adapter struct {
-	db *pg.DB
+// Filter defines the filtering rules for a FilteredAdapter's policy. Empty values
+// are ignored, but all others must match the filter.
+type Filter struct {
+	PType []string
+	V0    []string
+	V1    []string
+	V2    []string
+	V3    []string
+	V4    []string
+	V5    []string
 }
 
-var _ persist.Adapter = (*adapter)(nil)
+type adapter struct {
+	db         *pg.DB
+	isFiltered bool
+}
+
+var _ persist.FilteredAdapter = (*adapter)(nil)
 
 // NewAdapter is the constructor for Adapter.
-func NewAdapter(db *pg.DB) persist.Adapter {
+func NewAdapter(db *pg.DB) persist.FilteredAdapter {
 	return &adapter{
 		db: db,
 	}
@@ -43,6 +57,7 @@ func NewAdapter(db *pg.DB) persist.Adapter {
 
 // LoadPolicy loads policy from database.
 func (a *adapter) LoadPolicy(model model.Model) error {
+	a.isFiltered = false
 	var lines []*CasbinRule
 
 	if _, err := a.db.Query(&lines, `SELECT * FROM casbin_rules`); err != nil {
@@ -242,4 +257,63 @@ func (a *adapter) rawDelete(line *CasbinRule) (err error) {
 		return
 	}
 	return
+}
+
+// IsFiltered returns true if the loaded policy has been filtered.
+func (a *adapter) IsFiltered() bool {
+	return a.isFiltered
+}
+
+// LoadFilteredPolicy loads only policy rules that match the filter.
+func (a *adapter) LoadFilteredPolicy(model model.Model, filter interface{}) error {
+	if filter == nil {
+		return a.LoadPolicy(model)
+	}
+	var lines []CasbinRule
+
+	filterValue, ok := filter.(*Filter)
+	if !ok {
+		return errors.New("invalid filter type")
+	}
+
+	err := a.db.Model(&lines).WhereGroup(a.filterQuery(filterValue)).Select()
+
+	if err != nil {
+		return err
+	}
+
+	for _, line := range lines {
+		loadPolicyLine(&line, model)
+	}
+	a.isFiltered = true
+
+	return nil
+}
+
+// filterQuery builds the query to match the rule filter to use within a scope.
+func (a *adapter) filterQuery(filter *Filter) func(q *orm.Query) (*orm.Query, error) {
+	return func(q *orm.Query) (*orm.Query, error) {
+		if len(filter.PType) > 0 {
+			q = q.Where("p_type in (?)", pg.In(filter.PType))
+		}
+		if len(filter.V0) > 0 {
+			q = q.Where("v0 in (?)", pg.In(filter.V0))
+		}
+		if len(filter.V1) > 0 {
+			q = q.Where("v1 in (?)", pg.In(filter.V1))
+		}
+		if len(filter.V2) > 0 {
+			q = q.Where("v2 in (?)", pg.In(filter.V2))
+		}
+		if len(filter.V3) > 0 {
+			q = q.Where("v3 in (?)", pg.In(filter.V3))
+		}
+		if len(filter.V4) > 0 {
+			q = q.Where("v4 in (?)", pg.In(filter.V4))
+		}
+		if len(filter.V5) > 0 {
+			q = q.Where("v5 in (?)", pg.In(filter.V5))
+		}
+		return q, nil
+	}
 }
