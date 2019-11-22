@@ -12,12 +12,14 @@ func init() {
 	orm.RegisterTable((*UserGroup)(nil))
 }
 
+// Organization represent organizations table
 type Organization struct {
 	ID    int32   `pg:"id,notnull,unique"`
 	Name  string  `pg:"name,notnull"`
 	Users []*User `pg:"fk:organization_id"`
 }
 
+// User represent users table
 type User struct {
 	ID             int32  `pg:"id,notnull,unique"`
 	Email          string `pg:"email,notnull,unique"`
@@ -26,6 +28,7 @@ type User struct {
 	Groups         []*Group `pg:"many2many:users_groups,fk:user_id,joinFK:group_id"`
 }
 
+// Group represent groups table
 type Group struct {
 	ID             int32     `pg:"id,notnull"`
 	Name           string    `pg:"name,notnull,unique:uk_groups_name_org"`
@@ -36,20 +39,6 @@ type Group struct {
 	Users          []*User `pg:"many2many:users_groups,fk:group_id,joinFK:user_id"`
 }
 
-var _ orm.BeforeInsertHook = (*Group)(nil)
-var _ orm.AfterInsertHook = (*Group)(nil)
-
-func (g *Group) BeforeInsert(ctx context.Context) (context.Context, error) {
-	if g.CreatedAt.IsZero() {
-		g.CreatedAt = time.Now()
-	}
-	return ctx, nil
-}
-
-func (g *Group) AfterInsert(ctx context.Context) error {
-	return nil // here we can update the cache
-}
-
 type UserGroup struct {
 	tableName struct{} `pg:"users_groups"`
 
@@ -57,4 +46,20 @@ type UserGroup struct {
 	User    *User
 	GroupId int32 `pg:"group_id,pk,notnull"`
 	Group   *Group
+}
+
+var _ orm.BeforeInsertHook = (*Group)(nil)
+var _ orm.AfterInsertHook = (*Group)(nil)
+
+//BeforeInsert group hooks
+func (g *Group) BeforeInsert(ctx context.Context) (context.Context, error) {
+	if g.CreatedAt.IsZero() {
+		g.CreatedAt = time.Now()
+	}
+	return ctx, nil
+}
+
+//AfterInsert group hooks
+func (g *Group) AfterInsert(ctx context.Context) error {
+	return nil // here we can update the cache
 }
