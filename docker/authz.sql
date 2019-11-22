@@ -34,6 +34,17 @@ CREATE TABLE groups
 --     deleted_at      TIMESTAMP             NULL     DEFAULT NOW()
 );
 
+CREATE TABLE casbin_rules
+(
+    p_type           VARCHAR(10) , 
+    v0              VARCHAR(256), 
+    v1              VARCHAR(256), 
+    v2              VARCHAR(256), 
+    v3              VARCHAR(256), 
+    v4              VARCHAR(256), 
+    v5              VARCHAR(256)
+);
+
 CREATE TABLE users_groups
 (
     user_id  BIGINT NOT NULL,
