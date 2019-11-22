@@ -9,10 +9,10 @@ import (
 	"github.com/imtanmoy/authz/models"
 	"github.com/imtanmoy/authz/organizations"
 	"github.com/imtanmoy/authz/utils/httputil"
-	"github.com/imtanmoy/authz/utils/sqlutil"
 	param "github.com/oceanicdev/chi-param"
 )
 
+// Handler handles groups http method
 type Handler interface {
 	OrganizationCtx(next http.Handler) http.Handler
 	List(w http.ResponseWriter, r *http.Request)
@@ -27,6 +27,7 @@ type groupHandler struct {
 
 var _ Handler = (*groupHandler)(nil)
 
+// NewGroupHandler creates a new groups handlers
 func NewGroupHandler(db *pg.DB) Handler {
 	return &groupHandler{
 		service:             NewGroupService(db),
@@ -42,12 +43,13 @@ func (g *groupHandler) OrganizationCtx(next http.Handler) http.Handler {
 			_ = render.Render(w, r, httputil.ErrInvalidRequestParam())
 			return
 		}
+		type okey string
 		organization, err := g.organizationService.Find(oid)
 		if err != nil {
 			_ = render.Render(w, r, httputil.ErrNotFound("organization not found"))
 			return
 		}
-		ctx := context.WithValue(r.Context(), "organization", organization)
+		ctx := context.WithValue(r.Context(), okey("organization"), organization)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }
@@ -112,8 +114,7 @@ func (g *groupHandler) Create(w http.ResponseWriter, r *http.Request) {
 	newGroup, err := g.service.Create(data, organization)
 
 	if err != nil {
-		cerr := sqlutil.GetError(err)
-		_ = render.Render(w, r, httputil.ErrRender(cerr))
+		_ = render.Render(w, r, httputil.HandleError(err))
 		return
 	}
 
