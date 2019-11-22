@@ -2,13 +2,15 @@ package groups
 
 import (
 	"context"
+	"net/http"
+
 	"github.com/go-chi/render"
 	"github.com/go-pg/pg/v9"
 	"github.com/imtanmoy/authz/models"
 	"github.com/imtanmoy/authz/organizations"
-	"github.com/imtanmoy/authz/utils/errutil"
+	"github.com/imtanmoy/authz/utils/httputil"
+	"github.com/imtanmoy/authz/utils/sqlutil"
 	param "github.com/oceanicdev/chi-param"
-	"net/http"
 )
 
 type Handler interface {
@@ -37,12 +39,12 @@ func (g *groupHandler) OrganizationCtx(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		oid, err := param.Int32(r, "oid")
 		if err != nil {
-			_ = render.Render(w, r, errutil.ErrInvalidRequestParam())
+			_ = render.Render(w, r, httputil.ErrInvalidRequestParam())
 			return
 		}
 		organization, err := g.organizationService.Find(oid)
 		if err != nil {
-			_ = render.Render(w, r, errutil.ErrNotFound("organization not found"))
+			_ = render.Render(w, r, httputil.ErrNotFound("organization not found"))
 			return
 		}
 		ctx := context.WithValue(r.Context(), "organization", organization)
@@ -54,16 +56,16 @@ func (g *groupHandler) List(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	organization, ok := ctx.Value("organization").(*models.Organization)
 	if !ok {
-		_ = render.Render(w, r, errutil.ErrUnprocessableEntity())
+		_ = render.Render(w, r, httputil.ErrUnprocessableEntity())
 		return
 	}
 	groups, err := g.service.List(organization)
 	if err != nil {
-		_ = render.Render(w, r, errutil.ErrRender(err))
+		_ = render.Render(w, r, httputil.ErrRender(err))
 		return
 	}
 	if err := render.RenderList(w, r, NewGroupListResponse(groups)); err != nil {
-		_ = render.Render(w, r, errutil.ErrRender(err))
+		_ = render.Render(w, r, httputil.ErrRender(err))
 		return
 	}
 }
@@ -72,25 +74,25 @@ func (g *groupHandler) Create(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	organization, ok := ctx.Value("organization").(*models.Organization)
 	if !ok {
-		_ = render.Render(w, r, errutil.ErrUnprocessableEntity())
+		_ = render.Render(w, r, httputil.ErrUnprocessableEntity())
 		return
 	}
 	data := &GroupPayload{}
 	if err := render.Bind(r, data); err != nil {
-		_ = render.Render(w, r, errutil.ErrRender(err))
+		_ = render.Render(w, r, httputil.ErrRender(err))
 		return
 	}
 	// request validation
 	validationErrors := data.validate()
 	if len(validationErrors) > 0 {
-		_ = render.Render(w, r, errutil.ErrInvalidRequest(validationErrors))
+		_ = render.Render(w, r, httputil.ErrInvalidRequest(validationErrors))
 		return
 	}
 
 	// check if users belongs to the organization
 	users, _ := g.organizationService.FindUsersByIds(organization, data.Users)
 	if len(users) != len(data.Users) {
-		_ = render.Render(w, r, errutil.ErrInvalidRequestParamWithMsg("invalid users list"))
+		_ = render.Render(w, r, httputil.ErrInvalidRequestParamWithMsg("invalid users list"))
 		return
 	}
 
@@ -103,24 +105,19 @@ func (g *groupHandler) Create(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	if len(existErr) > 0 {
-		_ = render.Render(w, r, errutil.ErrInvalidRequest(existErr))
+		_ = render.Render(w, r, httputil.ErrInvalidRequest(existErr))
 		return
 	}
 
-	// more ways https://stackoverflow.com/questions/31565505/get-error-code-number-from-postgres-in-go
-	if err != nil && err == pg.ErrNoRows {
-		newGroup, err := g.service.Create(data, organization)
+	newGroup, err := g.service.Create(data, organization)
 
-		if err != nil {
-			_ = render.Render(w, r, errutil.ErrRender(err))
-			return
-		}
-
-		render.Status(r, http.StatusCreated)
-		_ = render.Render(w, r, NewGroupResponse(newGroup))
-		return
-	} else {
-		_ = render.Render(w, r, errutil.ErrRender(err))
+	if err != nil {
+		cerr := sqlutil.GetError(err)
+		_ = render.Render(w, r, httputil.ErrRender(cerr))
 		return
 	}
+
+	render.Status(r, http.StatusCreated)
+	_ = render.Render(w, r, NewGroupResponse(newGroup))
+	return
 }

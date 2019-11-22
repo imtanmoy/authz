@@ -1,13 +1,14 @@
 package organizations
 
 import (
-	"github.com/go-chi/render"
-	"github.com/go-pg/pg/v9"
-	"github.com/oceanicdev/chi-param"
 	"net/http"
 
+	"github.com/go-chi/render"
+	"github.com/go-pg/pg/v9"
+	param "github.com/oceanicdev/chi-param"
+
 	"github.com/imtanmoy/authz/models"
-	"github.com/imtanmoy/authz/utils/errutil"
+	"github.com/imtanmoy/authz/utils/httputil"
 )
 
 type Handler interface {
@@ -33,12 +34,12 @@ func NewOrganizationHandler(db *pg.DB) Handler {
 func (o *organizationHandler) List(w http.ResponseWriter, r *http.Request) {
 	organizations, err := o.service.List()
 	if err != nil {
-		_ = render.Render(w, r, errutil.ErrRender(err))
+		_ = render.Render(w, r, httputil.ErrRender(err))
 		return
 	}
 
 	if err := render.RenderList(w, r, NewOrganizationListResponse(organizations)); err != nil {
-		_ = render.Render(w, r, errutil.ErrRender(err))
+		_ = render.Render(w, r, httputil.ErrRender(err))
 		return
 	}
 }
@@ -47,14 +48,14 @@ func (o *organizationHandler) Create(w http.ResponseWriter, r *http.Request) {
 
 	data := &OrganizationPayload{}
 	if err := render.Bind(r, data); err != nil {
-		_ = render.Render(w, r, errutil.ErrRender(err))
+		_ = render.Render(w, r, httputil.ErrRender(err))
 		return
 	}
 
 	validationErrors := data.validate()
 
 	if len(validationErrors) > 0 {
-		_ = render.Render(w, r, errutil.ErrInvalidRequest(validationErrors))
+		_ = render.Render(w, r, httputil.ErrInvalidRequest(validationErrors))
 		return
 	}
 	exist := o.service.Exists(data.ID)
@@ -62,7 +63,7 @@ func (o *organizationHandler) Create(w http.ResponseWriter, r *http.Request) {
 		existErr := map[string][]string{
 			"id": {"Organization with same id already exits"},
 		}
-		_ = render.Render(w, r, errutil.ErrInvalidRequest(existErr))
+		_ = render.Render(w, r, httputil.ErrInvalidRequest(existErr))
 		return
 	}
 
@@ -72,7 +73,7 @@ func (o *organizationHandler) Create(w http.ResponseWriter, r *http.Request) {
 
 	newOrganization, err := o.service.Create(&organization)
 	if err != nil {
-		_ = render.Render(w, r, errutil.ErrRender(err))
+		_ = render.Render(w, r, httputil.ErrRender(err))
 		return
 	}
 
@@ -84,16 +85,16 @@ func (o *organizationHandler) Create(w http.ResponseWriter, r *http.Request) {
 func (o *organizationHandler) Get(w http.ResponseWriter, r *http.Request) {
 	id, err := param.Int32(r, "id")
 	if err != nil {
-		_ = render.Render(w, r, errutil.ErrInvalidRequestParam())
+		_ = render.Render(w, r, httputil.ErrInvalidRequestParam())
 		return
 	}
 	organization, err := o.service.Find(id)
 	if err != nil {
-		_ = render.Render(w, r, errutil.ErrNotFound("organization not found"))
+		_ = render.Render(w, r, httputil.ErrNotFound("organization not found"))
 		return
 	}
 	if err := render.Render(w, r, NewOrganizationResponse(organization)); err != nil {
-		_ = render.Render(w, r, errutil.ErrRender(err))
+		_ = render.Render(w, r, httputil.ErrRender(err))
 		return
 	}
 }
@@ -101,37 +102,37 @@ func (o *organizationHandler) Get(w http.ResponseWriter, r *http.Request) {
 func (o *organizationHandler) Update(w http.ResponseWriter, r *http.Request) {
 	id, err := param.Int32(r, "id")
 	if err != nil {
-		_ = render.Render(w, r, errutil.ErrInvalidRequestParam())
+		_ = render.Render(w, r, httputil.ErrInvalidRequestParam())
 		return
 	}
 
 	data := &OrganizationPayload{}
 	if err := render.Bind(r, data); err != nil {
-		_ = render.Render(w, r, errutil.ErrRender(err))
+		_ = render.Render(w, r, httputil.ErrRender(err))
 		return
 	}
 
 	validationErrors := data.validate()
 
 	if len(validationErrors) > 0 {
-		_ = render.Render(w, r, errutil.ErrInvalidRequest(validationErrors))
+		_ = render.Render(w, r, httputil.ErrInvalidRequest(validationErrors))
 		return
 	}
 
 	organization, err := o.service.Find(id)
 	if err != nil {
-		_ = render.Render(w, r, errutil.ErrNotFound("organization not found"))
+		_ = render.Render(w, r, httputil.ErrNotFound("organization not found"))
 		return
 	}
 
 	organization.Name = data.Name
 	organization, err = o.service.Update(organization)
 	if err != nil {
-		_ = render.Render(w, r, errutil.ErrRender(err))
+		_ = render.Render(w, r, httputil.ErrRender(err))
 		return
 	}
 	if err := render.Render(w, r, NewOrganizationResponse(organization)); err != nil {
-		_ = render.Render(w, r, errutil.ErrRender(err))
+		_ = render.Render(w, r, httputil.ErrRender(err))
 		return
 	}
 }
@@ -139,17 +140,17 @@ func (o *organizationHandler) Update(w http.ResponseWriter, r *http.Request) {
 func (o *organizationHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	id, err := param.Int32(r, "id")
 	if err != nil {
-		_ = render.Render(w, r, errutil.ErrInvalidRequestParam())
+		_ = render.Render(w, r, httputil.ErrInvalidRequestParam())
 		return
 	}
 	organization, err := o.service.Find(id)
 	if err != nil {
-		_ = render.Render(w, r, errutil.ErrNotFound("organization not found"))
+		_ = render.Render(w, r, httputil.ErrNotFound("organization not found"))
 		return
 	}
 	err = o.service.Delete(organization)
 	if err != nil {
-		_ = render.Render(w, r, errutil.ErrRender(err))
+		_ = render.Render(w, r, httputil.ErrRender(err))
 		return
 	}
 	render.NoContent(w, r)

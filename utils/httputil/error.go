@@ -1,4 +1,4 @@
-package errutil
+package httputil
 
 import (
 	"net/http"
@@ -26,6 +26,16 @@ func ErrRender(err error) render.Renderer {
 		HTTPStatusCode: 422,
 		Message:        err.Error(),
 		Code:           422,
+		Errors:         make(map[string][]string),
+	}
+}
+
+func ErrRenderWithCode(err error, code int) render.Renderer {
+	return &ErrResponse{
+		Err:            err,
+		HTTPStatusCode: code,
+		Message:        err.Error(),
+		Code:           code,
 		Errors:         make(map[string][]string),
 	}
 }
