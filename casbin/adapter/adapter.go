@@ -5,9 +5,10 @@ import (
 	"strings"
 
 	"github.com/go-pg/pg/v9"
+	"github.com/go-pg/pg/v9/orm"
 
-	"github.com/casbin/casbin/v2/persist"
 	"github.com/casbin/casbin/v2/model"
+	"github.com/casbin/casbin/v2/persist"
 )
 
 const (
@@ -188,7 +189,9 @@ func loadPolicyLine(line *CasbinRule, model model.Model) {
 }
 
 func (a *adapter) createTable() error {
-	err := a.db.CreateTable((*CasbinRule)(nil), nil)
+	err := a.db.CreateTable((*CasbinRule)(nil), &orm.CreateTableOptions{
+		Temp: false,
+	})
 	if err != nil {
 		errorCode := err.Error()[0:12]
 		if errorCode != tableExistsErrorCode {
@@ -199,7 +202,7 @@ func (a *adapter) createTable() error {
 }
 
 func (a *adapter) dropTable() error {
-	err := a.db.DropTable((*CasbinRule)(nil), nil)
+	err := a.db.DropTable((*CasbinRule)(nil), &orm.DropTableOptions{})
 	if err != nil {
 		return err
 	}
