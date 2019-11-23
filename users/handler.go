@@ -1,12 +1,13 @@
 package users
 
 import (
+	"net/http"
+
 	"github.com/go-chi/render"
 	"github.com/go-pg/pg/v9"
 	"github.com/imtanmoy/authz/organizations"
 	"github.com/imtanmoy/authz/utils/httputil"
-	"github.com/oceanicdev/chi-param"
-	"net/http"
+	param "github.com/oceanicdev/chi-param"
 
 	"github.com/imtanmoy/authz/models"
 )
@@ -36,11 +37,11 @@ func NewUserHandler(db *pg.DB) Handler {
 func (u *userHandler) List(w http.ResponseWriter, r *http.Request) {
 	users, err := u.service.List()
 	if err != nil {
-		_ = render.Render(w, r, httputil.ErrRender(err))
+		_ = render.Render(w, r, httputil.NewAPIError(err))
 		return
 	}
 	if err := render.RenderList(w, r, NewUserListResponse(users)); err != nil {
-		_ = render.Render(w, r, httputil.ErrRender(err))
+		_ = render.Render(w, r, httputil.NewAPIError(err))
 		return
 	}
 }
@@ -49,14 +50,14 @@ func (u *userHandler) Create(w http.ResponseWriter, r *http.Request) {
 
 	data := &UserPayload{}
 	if err := render.Bind(r, data); err != nil {
-		_ = render.Render(w, r, httputil.ErrRender(err))
+		_ = render.Render(w, r, httputil.NewAPIError(err))
 		return
 	}
 
 	validationErrors := data.validate()
 
 	if len(validationErrors) > 0 {
-		_ = render.Render(w, r, httputil.ErrInvalidRequest(validationErrors))
+		_ = render.Render(w, r, httputil.NewAPIError(400, "Invalid request", validationErrors))
 		return
 	}
 	exist := u.service.Exists(data.ID)
@@ -73,13 +74,13 @@ func (u *userHandler) Create(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	if len(existErr) > 0 {
-		_ = render.Render(w, r, httputil.ErrInvalidRequest(existErr))
+		_ = render.Render(w, r, httputil.NewAPIError(400, "Invalid request", existErr))
 		return
 	}
 
 	organization, err := u.organizationService.Find(data.OrganizationID)
 	if err != nil {
-		_ = render.Render(w, r, httputil.ErrRender(err))
+		_ = render.Render(w, r, httputil.NewAPIError(err))
 		return
 	}
 
@@ -92,7 +93,7 @@ func (u *userHandler) Create(w http.ResponseWriter, r *http.Request) {
 	newUser, err := u.service.Create(&user)
 
 	if err != nil {
-		_ = render.Render(w, r, httputil.ErrRender(err))
+		_ = render.Render(w, r, httputil.NewAPIError(err))
 		return
 	}
 
@@ -104,16 +105,16 @@ func (u *userHandler) Create(w http.ResponseWriter, r *http.Request) {
 func (u *userHandler) Get(w http.ResponseWriter, r *http.Request) {
 	id, err := param.Int32(r, "id")
 	if err != nil {
-		_ = render.Render(w, r, httputil.ErrInvalidRequestParam())
+		_ = render.Render(w, r, httputil.NewAPIError(400, "Invalid request parameter", err))
 		return
 	}
 	user, err := u.service.Find(id)
 	if err != nil {
-		_ = render.Render(w, r, httputil.ErrNotFound("user not found"))
+		_ = render.Render(w, r, httputil.NewAPIError(404, "user not found", err))
 		return
 	}
 	if err := render.Render(w, r, NewUserResponse(user)); err != nil {
-		_ = render.Render(w, r, httputil.ErrRender(err))
+		_ = render.Render(w, r, httputil.NewAPIError(err))
 		return
 	}
 }
@@ -121,37 +122,37 @@ func (u *userHandler) Get(w http.ResponseWriter, r *http.Request) {
 func (u *userHandler) Update(w http.ResponseWriter, r *http.Request) {
 	id, err := param.Int32(r, "id")
 	if err != nil {
-		_ = render.Render(w, r, httputil.ErrInvalidRequestParam())
+		_ = render.Render(w, r, httputil.NewAPIError(400, "Invalid request parameter", err))
 		return
 	}
 
 	data := &UserPayload{}
 	if err := render.Bind(r, data); err != nil {
-		_ = render.Render(w, r, httputil.ErrRender(err))
+		_ = render.Render(w, r, httputil.NewAPIError(err))
 		return
 	}
 
 	validationErrors := data.validate()
 
 	if len(validationErrors) > 0 {
-		_ = render.Render(w, r, httputil.ErrInvalidRequest(validationErrors))
+		_ = render.Render(w, r, httputil.NewAPIError(400, "Invalid request", validationErrors))
 		return
 	}
 
 	user, err := u.service.Find(id)
 	if err != nil {
-		_ = render.Render(w, r, httputil.ErrRender(err))
+		_ = render.Render(w, r, httputil.NewAPIError(err))
 		return
 	}
 
 	user.Email = data.Email
 	user, err = u.service.Update(user)
 	if err != nil {
-		_ = render.Render(w, r, httputil.ErrRender(err))
+		_ = render.Render(w, r, httputil.NewAPIError(err))
 		return
 	}
 	if err := render.Render(w, r, NewUserResponse(user)); err != nil {
-		_ = render.Render(w, r, httputil.ErrRender(err))
+		_ = render.Render(w, r, httputil.NewAPIError(err))
 		return
 	}
 }
@@ -159,17 +160,17 @@ func (u *userHandler) Update(w http.ResponseWriter, r *http.Request) {
 func (u *userHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	id, err := param.Int32(r, "id")
 	if err != nil {
-		_ = render.Render(w, r, httputil.ErrInvalidRequestParam())
+		_ = render.Render(w, r, httputil.NewAPIError(400, "Invalid request parameter", err))
 		return
 	}
 	user, err := u.service.Find(id)
 	if err != nil {
-		_ = render.Render(w, r, httputil.ErrRender(err))
+		_ = render.Render(w, r, httputil.NewAPIError(err))
 		return
 	}
 	err = u.service.Delete(user)
 	if err != nil {
-		_ = render.Render(w, r, httputil.ErrRender(err))
+		_ = render.Render(w, r, httputil.NewAPIError(err))
 		return
 	}
 	render.NoContent(w, r)
