@@ -272,5 +272,5 @@ func GetError(err error) error {
 			}
 		}
 	}
-	return fmt.Errorf("Unknown Error: %w", err)
+	return nil
 }
