@@ -10,6 +10,7 @@ import (
 	"github.com/go-chi/render"
 )
 
+// ErrResponse construct http error response
 type ErrResponse struct {
 	Err            error `json:"-"` // low-level runtime error
 	HTTPStatusCode int   `json:"-"` // http response status code
@@ -19,30 +20,40 @@ type ErrResponse struct {
 	Errors  url.Values `json:"errors"`  // application-level error message, for debugging
 }
 
+// Render ErrResponse render method for chi
 func (e *ErrResponse) Render(w http.ResponseWriter, r *http.Request) error {
-	if e.Err == nil {
-		e.Err = errors.New("Unknown Error")
-	}
-	if e.Errors == nil {
-		e.Errors = make(url.Values)
-	}
-	if e.Code == 0 {
-		e.Code = http.StatusInternalServerError
-		e.HTTPStatusCode = http.StatusInternalServerError
-	}
-	if e.Message == "" {
-		e.Message = e.Err.Error()
-	}
 	render.Status(r, e.HTTPStatusCode)
 	return nil
 }
 
 // HandleError handles sqlerror to http error
-func HandleError(err error) render.Renderer {
+// func HandleError(err error) *ErrResponse {
+// 	var e *sqlutil.SQLError
+// 	sqlerror := sqlutil.GetError(err)
+// 	httpErrCode := 500
+// 	if errors.As(sqlerror, &e) {
+// 		switch e.Code {
+// 		case sqlutil.CodeUniqueViolation:
+// 			httpErrCode = 404
+// 			break
+// 		default:
+// 			httpErrCode = 500
+// 		}
+// 	}
+
+// 	return &ErrResponse{
+// 		Err:            sqlerror,
+// 		HTTPStatusCode: httpErrCode,
+// 		Message:        sqlerror.Error(),
+// 		Code:           httpErrCode,
+// 		Errors:         make(map[string][]string),
+// 	}
+// }
+
+func handleSQLError(err error) *ErrResponse {
 	var e *sqlutil.SQLError
-	sqlerror := sqlutil.GetError(err)
 	httpErrCode := 500
-	if errors.As(sqlerror, &e) {
+	if errors.As(err, &e) {
 		switch e.Code {
 		case sqlutil.CodeUniqueViolation:
 			httpErrCode = 404
@@ -53,9 +64,9 @@ func HandleError(err error) render.Renderer {
 	}
 
 	return &ErrResponse{
-		Err:            sqlerror,
+		Err:            err,
 		HTTPStatusCode: httpErrCode,
-		Message:        sqlerror.Error(),
+		Message:        err.Error(),
 		Code:           httpErrCode,
 		Errors:         make(map[string][]string),
 	}
@@ -129,6 +140,7 @@ func ErrUnprocessableEntity() render.Renderer {
 // NewAPIError create new AppError
 func NewAPIError(value ...interface{}) *ErrResponse {
 	ae := ErrResponse{}
+
 	if len(value) == 0 {
 		ae.Err = errors.New("Unknown Error")
 	}
@@ -140,19 +152,34 @@ func NewAPIError(value ...interface{}) *ErrResponse {
 		case int:
 			ae.Code = v
 			ae.HTTPStatusCode = v
+			break
 		case string:
 			ae.Message = v
+			break
 		case error:
+			sqlerror := sqlutil.GetError(v)
+			if sqlerror != nil && len(value) == 1 {
+				ae = *handleSQLError(sqlerror)
+				break
+			}
 			ae.Err = v
 		case map[string][]string:
 			ae.Errors = v
+			break
 		}
 	}
 	if ae.Code == 0 {
 		ae.Code = http.StatusInternalServerError
+		ae.HTTPStatusCode = http.StatusInternalServerError
 	}
 	if ae.Errors == nil {
 		ae.Errors = make(url.Values)
+	}
+	if ae.Err == nil {
+		ae.Err = errors.New("Unknown Error")
+	}
+	if ae.Message == "" {
+		ae.Message = ae.Err.Error()
 	}
 	return &ae
 }

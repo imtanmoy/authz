@@ -106,14 +106,14 @@ func (g *groupHandler) Create(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	if len(existErr) > 0 {
-		_ = render.Render(w, r, httputil.ErrInvalidRequest(existErr))
+		_ = render.Render(w, r, httputil.NewAPIError(400, "Invalid Request", existErr))
 		return
 	}
 
 	newGroup, err := g.service.Create(data, organization)
 
 	if err != nil {
-		_ = render.Render(w, r, httputil.HandleError(err))
+		_ = render.Render(w, r, httputil.NewAPIError(err))
 		return
 	}
 
