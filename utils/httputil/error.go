@@ -1,9 +1,11 @@
-package errutil
+package httputil
 
 import (
 	"errors"
 	"net/http"
 	"net/url"
+
+	"github.com/imtanmoy/authz/utils/sqlutil"
 
 	"github.com/go-chi/render"
 )
@@ -35,6 +37,30 @@ func (e *ErrResponse) Render(w http.ResponseWriter, r *http.Request) error {
 	return nil
 }
 
+// HandleError handles sqlerror to http error
+func HandleError(err error) render.Renderer {
+	var e *sqlutil.SQLError
+	sqlerror := sqlutil.GetError(err)
+	httpErrCode := 500
+	if errors.As(sqlerror, &e) {
+		switch e.Code {
+		case sqlutil.CodeUniqueViolation:
+			httpErrCode = 404
+			break
+		default:
+			httpErrCode = 500
+		}
+	}
+
+	return &ErrResponse{
+		Err:            sqlerror,
+		HTTPStatusCode: httpErrCode,
+		Message:        sqlerror.Error(),
+		Code:           httpErrCode,
+		Errors:         make(map[string][]string),
+	}
+}
+
 func ErrRender(err error) render.Renderer {
 	return &ErrResponse{
 		Err:            err,
@@ -55,7 +81,7 @@ func ErrRenderWithCode(err error, code int) render.Renderer {
 	}
 }
 
-func ErrInvalidRequest(errors url.Values) render.Renderer {
+func ErrInvalidRequest(errors map[string][]string) render.Renderer {
 	return &ErrResponse{
 		HTTPStatusCode: 400,
 		Message:        "Invalid request",
