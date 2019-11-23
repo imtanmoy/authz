@@ -35,30 +35,6 @@ func (e *ErrResponse) Render(w http.ResponseWriter, r *http.Request) error {
 	return nil
 }
 
-// HandleError handles sqlerror to http error
-// func HandleError(err error) render.Renderer {
-// 	var e *sqlutil.SQLError
-// 	sqlerror := sqlutil.GetError(err)
-// 	httpErrCode := 500
-// 	if errors.As(sqlerror, &e) {
-// 		switch e.Code {
-// 		case sqlutil.CodeUniqueViolation:
-// 			httpErrCode = 404
-// 			break
-// 		default:
-// 			httpErrCode = 500
-// 		}
-// 	}
-
-// 	return &ErrResponse{
-// 		Err:            sqlerror,
-// 		HTTPStatusCode: httpErrCode,
-// 		Message:        sqlerror.Error(),
-// 		Code:           httpErrCode,
-// 		Errors:         make(url.Values),
-// 	}
-// }
-
 func ErrRender(err error) render.Renderer {
 	return &ErrResponse{
 		Err:            err,
@@ -124,11 +100,14 @@ func ErrUnprocessableEntity() render.Renderer {
 	}
 }
 
-// NewAppError create new AppError
-func NewAppError(value ...interface{}) *ErrResponse {
+// NewAPIError create new AppError
+func NewAPIError(value ...interface{}) *ErrResponse {
 	ae := ErrResponse{}
+	if len(value) == 0 {
+		ae.Err = errors.New("Unknown Error")
+	}
 	for i, val := range value {
-		if i >= 3 {
+		if i >= 4 {
 			break
 		}
 		switch v := val.(type) {
@@ -139,10 +118,8 @@ func NewAppError(value ...interface{}) *ErrResponse {
 			ae.Message = v
 		case error:
 			ae.Err = v
-		case url.Values:
+		case map[string][]string:
 			ae.Errors = v
-		default:
-			ae.Message = "Unknown AppError type!"
 		}
 	}
 	if ae.Code == 0 {
