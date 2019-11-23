@@ -1,6 +1,8 @@
 package casbin
 
 import (
+	"time"
+
 	"github.com/casbin/casbin/v2"
 	"github.com/casbin/casbin/v2/model"
 	"github.com/go-pg/pg/v9"
@@ -9,10 +11,10 @@ import (
 )
 
 //Enforcer casbin Enforcer
-var Enforcer *casbin.Enforcer
+var Enforcer *casbin.SyncedEnforcer
 
-// InitCasbin initialze the Conf
-func InitCasbin(db *pg.DB) {
+// Init initialze the Conf
+func Init(db *pg.DB) {
 	text :=
 		`
 		[request_definition]
@@ -40,8 +42,10 @@ func InitCasbin(db *pg.DB) {
 	a := adapter.NewAdapter(db)
 
 	// Create the enforcer.
-	Enforcer, err = casbin.NewEnforcer(m, a)
+	Enforcer, err = casbin.NewSyncedEnforcer(m, a)
 	if err != nil {
 		panic(err)
 	}
+	// Enforcer.EnableLog(true)
+	Enforcer.StartAutoLoadPolicy(30 * time.Second)
 }
