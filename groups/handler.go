@@ -2,14 +2,13 @@ package groups
 
 import (
 	"context"
-	"net/http"
-
 	"github.com/go-chi/render"
 	"github.com/go-pg/pg/v9"
 	"github.com/imtanmoy/authz/models"
 	"github.com/imtanmoy/authz/organizations"
 	"github.com/imtanmoy/authz/utils/httputil"
 	param "github.com/oceanicdev/chi-param"
+	"net/http"
 )
 
 // Handler handles groups http method
@@ -86,32 +85,33 @@ func (g *groupHandler) Create(w http.ResponseWriter, r *http.Request) {
 
 	// request validation
 	validationErrors := data.validate()
+	// check if users belongs to the organization
+	users, _ := g.organizationService.FindUsersByIds(organization, data.Users)
+	if len(users) != len(data.Users) {
+		validationErrors.Add("users", "invalid user list")
+	}
+	// check if permissions belongs to the organization
+	permissions, _ := g.organizationService.FindPermissionsByIds(organization, data.Permissions)
+	if len(permissions) != len(data.Permissions) {
+		validationErrors.Add("permissions", "invalid permission list")
+	}
+
 	if len(validationErrors) > 0 {
 		_ = render.Render(w, r, httputil.NewAPIError(400, "Invalid request", validationErrors))
 		return
 	}
 
-	// check if users belongs to the organization
-	users, _ := g.organizationService.FindUsersByIds(organization, data.Users)
-	if len(users) != len(data.Users) {
-		_ = render.Render(w, r, httputil.NewAPIError(400, "invalid users list"))
-		return
-	}
-
 	// check if group with same name already exist
 	existGroup, err := g.service.FindByName(organization, data.Name)
-	existErr := make(map[string][]string)
 	if err == nil && existGroup.Name == data.Name {
-		existErr = map[string][]string{
-			"name": {"Group with same name already exits"},
-		}
+		validationErrors.Add("name", "Group with same name already exits")
 	}
-	if len(existErr) > 0 {
-		_ = render.Render(w, r, httputil.NewAPIError(400, "Invalid Request", existErr))
+	if len(validationErrors) > 0 {
+		_ = render.Render(w, r, httputil.NewAPIError(400, "Invalid Request", validationErrors))
 		return
 	}
 
-	newGroup, err := g.service.Create(data, organization)
+	newGroup, err := g.service.Create(data, organization, users, permissions)
 
 	if err != nil {
 		_ = render.Render(w, r, httputil.NewAPIError(err))

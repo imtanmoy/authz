@@ -70,7 +70,7 @@ func handleSQLError(err error) *ErrResponse {
 		HTTPStatusCode: httpErrCode,
 		Message:        err.Error(),
 		Code:           httpErrCode,
-		Errors:         make(map[string][]string),
+		Errors:         make(url.Values),
 	}
 }
 
@@ -100,7 +100,7 @@ func NewAPIError(value ...interface{}) *ErrResponse {
 				break
 			}
 			ae.Err = v
-		case map[string][]string:
+		case url.Values:
 			ae.Errors = v
 			break
 		}

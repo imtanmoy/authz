@@ -1,6 +1,7 @@
 package groups
 
 import (
+	"fmt"
 	"github.com/go-pg/pg/v9"
 	"github.com/imtanmoy/authz/models"
 	"github.com/imtanmoy/authz/users"
@@ -8,7 +9,7 @@ import (
 
 type Service interface {
 	List(organization *models.Organization) ([]*models.Group, error)
-	Create(groupPayload *GroupPayload, organization *models.Organization) (*models.Group, error)
+	Create(groupPayload *GroupPayload, organization *models.Organization, users []*models.User, permissions []*models.Permission) (*models.Group, error)
 	FindByName(organization *models.Organization, name string) (*models.Group, error)
 }
 
@@ -32,7 +33,12 @@ func (g *groupService) List(organization *models.Organization) ([]*models.Group,
 	return g.repository.List(organization)
 }
 
-func (g *groupService) Create(groupPayload *GroupPayload, organization *models.Organization) (*models.Group, error) {
+func (g *groupService) Create(
+	groupPayload *GroupPayload,
+	organization *models.Organization,
+	users []*models.User,
+	permissions []*models.Permission,
+) (*models.Group, error) {
 	var group models.Group
 
 	tx, err := g.db.Begin()
@@ -43,7 +49,14 @@ func (g *groupService) Create(groupPayload *GroupPayload, organization *models.O
 	group.Name = groupPayload.Name
 	group.Organization = organization
 	group.OrganizationID = organization.ID
-	//userList := g.userRepository.FindAllByIdIn(groupPayload.Users)
+
+	for _, user := range users {
+		fmt.Println(user)
+	}
+
+	for _, permission := range permissions {
+		fmt.Println(permission)
+	}
 
 	newGroup, err := g.repository.Create(tx, &group)
 	if err != nil {

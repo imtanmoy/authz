@@ -15,6 +15,7 @@ type Repository interface {
 	Delete(tx *pg.Tx, organization *models.Organization) error
 	Exists(ID int32) bool
 	FindUsersByIds(organization *models.Organization, ids []int32) ([]*models.User, error)
+	FindPermissionsByIds(organization *models.Organization, ids []int32) ([]*models.Permission, error)
 }
 
 type organizationRepository struct {
@@ -80,4 +81,13 @@ func (o *organizationRepository) FindUsersByIds(organization *models.Organizatio
 		Where("organization_id = ? ", organization.ID).
 		Select()
 	return users, err
+}
+
+func (o *organizationRepository) FindPermissionsByIds(organization *models.Organization, ids []int32) ([]*models.Permission, error) {
+	var permissions []*models.Permission
+	err := o.db.Model(&permissions).
+		Where("id in (?)", pg.In(ids)).
+		Where("organization_id = ? ", organization.ID).
+		Select()
+	return permissions, err
 }

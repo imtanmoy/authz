@@ -14,6 +14,7 @@ type Service interface {
 	Delete(organization *models.Organization) error
 	Exists(id int32) bool
 	FindUsersByIds(organization *models.Organization, ids []int32) ([]*models.User, error)
+	FindPermissionsByIds(organization *models.Organization, ids []int32) ([]*models.Permission, error)
 }
 
 type organizationService struct {
@@ -66,4 +67,8 @@ func (o *organizationService) Delete(organization *models.Organization) error {
 
 func (o *organizationService) FindUsersByIds(organization *models.Organization, ids []int32) ([]*models.User, error) {
 	return o.repository.FindUsersByIds(organization, ids)
+}
+
+func (o *organizationService) FindPermissionsByIds(organization *models.Organization, ids []int32) ([]*models.Permission, error) {
+	return o.repository.FindPermissionsByIds(organization, ids)
 }
