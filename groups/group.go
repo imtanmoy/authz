@@ -65,10 +65,10 @@ func (g *GroupResponse) Render(w http.ResponseWriter, r *http.Request) error {
 }
 
 func NewGroupResponse(group *models.Group) *GroupResponse {
-	var users []*userResponse
-	for _, user := range group.Users {
-		users = append(users, NewUserResponse(user))
-	}
+	users := make([]*userResponse, 0)
+	//for _, user := range group.Users {
+	//	users = append(users, NewUserResponse(user))
+	//}
 	return &GroupResponse{
 		ID:        group.ID,
 		Name:      group.Name,
@@ -81,7 +81,7 @@ func NewGroupResponse(group *models.Group) *GroupResponse {
 }
 
 func NewGroupListResponse(groups []*models.Group) []render.Renderer {
-	var list []render.Renderer
+	list := make([]render.Renderer, 0)
 	for _, group := range groups {
 		list = append(list, NewGroupResponse(group))
 	}

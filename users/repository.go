@@ -31,7 +31,7 @@ func NewUserRepository(db *pg.DB) Repository {
 
 func (u *userRepository) List() ([]*models.User, error) {
 	var users []*models.User
-	err := u.db.Model(&users).Relation("Organization").Relation("Groups").Select()
+	err := u.db.Model(&users).Relation("Organization").Select()
 	return users, err
 }
 
@@ -40,7 +40,7 @@ func (u *userRepository) Find(ID int32) (*models.User, error) {
 		return nil, errors.New("user does not exists")
 	}
 	user := new(models.User)
-	err := u.db.Model(user).Where("id = ?", ID).Relation("Organization").Relation("Groups").Select()
+	err := u.db.Model(user).Where("id = ?", ID).Relation("Organization").Select()
 	return user, err
 }
 

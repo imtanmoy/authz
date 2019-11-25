@@ -25,7 +25,7 @@ func NewGroupRepository(db *pg.DB) Repository {
 
 func (g *groupRepository) List(organization *models.Organization) ([]*models.Group, error) {
 	var groups []*models.Group
-	err := g.db.Model(&groups).Where("organization_id = ?", organization.ID).Relation("Organization").Relation("Users").Select()
+	err := g.db.Model(&groups).Where("organization_id = ?", organization.ID).Relation("Organization").Select()
 	return groups, err
 }
 

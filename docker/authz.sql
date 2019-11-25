@@ -45,13 +45,6 @@ CREATE TABLE casbin_rules
     v5              VARCHAR(256)
 );
 
-CREATE TABLE users_groups
-(
-    user_id  BIGINT NOT NULL,
-    group_id BIGINT NOT NULL
-);
-
-
 ALTER TABLE users
     ADD CONSTRAINT fk_users_organization
         FOREIGN KEY (organization_id)
@@ -73,18 +66,6 @@ ALTER TABLE permissions
 
 ALTER TABLE permissions
     ADD CONSTRAINT uk_permissions_name_org UNIQUE (name, organization_id);
-
-ALTER TABLE users_groups
-    ADD CONSTRAINT pk_users_groups
-        PRIMARY KEY (user_id, group_id);
-
-ALTER TABLE users_groups
-    ADD CONSTRAINT fk_users_groups_user
-        FOREIGN KEY (user_id) REFERENCES users (id);
-
-ALTER TABLE users_groups
-    ADD CONSTRAINT fk_users_groups_group
-        FOREIGN KEY (group_id) REFERENCES groups (id);
 
 -- ALTER TABLE groups
 --     ADD CONSTRAINT uk_groups_name_org_del UNIQUE (name, organization_id, deleted_at);
@@ -108,8 +89,4 @@ VALUES (1, 'PERMISSION_1', 'ALL', 1);
 
 INSERT INTO permissions (id, name, action, organization_id)
 VALUES (2, 'PERMISSION_2', 'ALL', 1);
-
-
-INSERT INTO users_groups (user_id, group_id)
-values (1, 1)
 

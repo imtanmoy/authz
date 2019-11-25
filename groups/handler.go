@@ -83,6 +83,7 @@ func (g *groupHandler) Create(w http.ResponseWriter, r *http.Request) {
 		_ = render.Render(w, r, httputil.NewAPIError(422, "unable to decode the request content type"))
 		return
 	}
+
 	// request validation
 	validationErrors := data.validate()
 	if len(validationErrors) > 0 {

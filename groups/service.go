@@ -43,25 +43,25 @@ func (g *groupService) Create(groupPayload *GroupPayload, organization *models.O
 	group.Name = groupPayload.Name
 	group.Organization = organization
 	group.OrganizationID = organization.ID
-	userList := g.userRepository.FindAllByIdIn(groupPayload.Users)
+	//userList := g.userRepository.FindAllByIdIn(groupPayload.Users)
 
 	newGroup, err := g.repository.Create(tx, &group)
 	if err != nil {
 		return nil, err
 	}
-	for _, user := range userList {
-		_, err = tx.Model(&models.UserGroup{
-			UserId:  user.ID,
-			User:    user,
-			GroupId: newGroup.ID,
-			Group:   newGroup,
-		}).Insert()
-		if err != nil {
-			_ = tx.Rollback()
-			return nil, err
-		}
-	}
-	newGroup.Users = userList
+	//for _, user := range userList {
+	//	_, err = tx.Model(&models.UserGroup{
+	//		UserId:  user.ID,
+	//		User:    user,
+	//		GroupId: newGroup.ID,
+	//		Group:   newGroup,
+	//	}).Insert()
+	//	if err != nil {
+	//		_ = tx.Rollback()
+	//		return nil, err
+	//	}
+	//}
+	//newGroup.Users = userList
 	err = tx.Commit()
 	if err != nil {
 		return nil, err
