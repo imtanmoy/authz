@@ -1,10 +1,11 @@
 package groups
 
 import (
-	"fmt"
 	"github.com/go-pg/pg/v9"
+	"github.com/imtanmoy/authz/casbin"
 	"github.com/imtanmoy/authz/models"
 	"github.com/imtanmoy/authz/users"
+	"strconv"
 )
 
 type Service interface {
@@ -50,34 +51,24 @@ func (g *groupService) Create(
 	group.Organization = organization
 	group.OrganizationID = organization.ID
 
-	for _, user := range users {
-		fmt.Println(user)
-	}
-
-	for _, permission := range permissions {
-		fmt.Println(permission)
-	}
-
 	newGroup, err := g.repository.Create(tx, &group)
 	if err != nil {
+		_ = tx.Rollback()
 		return nil, err
 	}
-	//for _, user := range userList {
-	//	_, err = tx.Model(&models.UserGroup{
-	//		UserId:  user.ID,
-	//		User:    user,
-	//		GroupId: newGroup.ID,
-	//		Group:   newGroup,
-	//	}).Insert()
-	//	if err != nil {
-	//		_ = tx.Rollback()
-	//		return nil, err
-	//	}
-	//}
-	//newGroup.Users = userList
 	err = tx.Commit()
-	if err != nil {
-		return nil, err
+
+	for _, permission := range permissions {
+		_, err = casbin.Enforcer.AddPolicy(strconv.Itoa(int(newGroup.ID)), strconv.Itoa(int(permission.ID)), permission.Action)
+		if err != nil {
+			return nil, err
+		}
+	}
+	for _, user := range users {
+		_, err = casbin.Enforcer.AddGroupingPolicy(strconv.Itoa(int(user.ID)), strconv.Itoa(int(newGroup.ID)))
+		if err != nil {
+			return nil, err
+		}
 	}
 	return newGroup, err
 }
