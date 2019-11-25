@@ -49,18 +49,18 @@ func (g *groupService) Create(groupPayload *GroupPayload, organization *models.O
 	if err != nil {
 		return nil, err
 	}
-	for _, user := range userList {
-		_, err = tx.Model(&models.UserGroup{
-			UserId:  user.ID,
-			User:    user,
-			GroupId: newGroup.ID,
-			Group:   newGroup,
-		}).Insert()
-		if err != nil {
-			_ = tx.Rollback()
-			return nil, err
-		}
-	}
+	//for _, user := range userList {
+	//	_, err = tx.Model(&models.UserGroup{
+	//		UserId:  user.ID,
+	//		User:    user,
+	//		GroupId: newGroup.ID,
+	//		Group:   newGroup,
+	//	}).Insert()
+	//	if err != nil {
+	//		_ = tx.Rollback()
+	//		return nil, err
+	//	}
+	//}
 	newGroup.Users = userList
 	err = tx.Commit()
 	if err != nil {
