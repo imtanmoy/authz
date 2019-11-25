@@ -80,7 +80,7 @@ func (g *groupHandler) Create(w http.ResponseWriter, r *http.Request) {
 	}
 	data := &GroupPayload{}
 	if err := render.Bind(r, data); err != nil {
-		_ = render.Render(w, r, httputil.NewAPIError(err))
+		_ = render.Render(w, r, httputil.NewAPIError(422, "unable to decode the request content type"))
 		return
 	}
 	// request validation

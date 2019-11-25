@@ -10,6 +10,8 @@ import (
 	"github.com/go-chi/render"
 )
 
+var ErrInternalServerError = errors.New("internal server error")
+
 // ErrResponse construct http error response
 type ErrResponse struct {
 	Err            error `json:"-"` // low-level runtime error
@@ -77,7 +79,7 @@ func NewAPIError(value ...interface{}) *ErrResponse {
 	ae := ErrResponse{}
 
 	if len(value) == 0 {
-		ae.Err = errors.New("Unknown Error")
+		ae.Err = ErrInternalServerError
 	}
 	for i, val := range value {
 		if i >= 4 {
@@ -111,10 +113,14 @@ func NewAPIError(value ...interface{}) *ErrResponse {
 		ae.Errors = make(url.Values)
 	}
 	if ae.Err == nil {
-		ae.Err = errors.New("Unknown Error")
+		ae.Err = ErrInternalServerError
 	}
 	if ae.Message == "" {
-		ae.Message = ae.Err.Error()
+		if errors.Is(ae.Err, ErrInternalServerError) {
+			ae.Message = "Oops! Something went wrong"
+		} else {
+			ae.Message = ae.Err.Error()
+		}
 	}
 	return &ae
 }

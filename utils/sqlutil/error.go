@@ -170,7 +170,7 @@ func GetError(err error) error {
 			}
 			dbe := &SQLError{
 				Message:    msg,
-				Code:       string(code),
+				Code:       code,
 				Severity:   severity,
 				Constraint: constraint,
 				Table:      table,
@@ -218,7 +218,7 @@ func GetError(err error) error {
 			msg := strings.Replace(message, "out of range", "too large or too small", 1)
 			return &SQLError{
 				Message:  capitalize(msg),
-				Code:     string(code),
+				Code:     code,
 				Severity: severity,
 			}
 		case CodeInvalidTextRepresentation:
@@ -232,14 +232,14 @@ func GetError(err error) error {
 			msg = strings.Replace(msg, "invalid", "Invalid", 1)
 			return &SQLError{
 				Message:  msg,
-				Code:     string(code),
+				Code:     code,
 				Severity: severity,
 			}
 		case CodeNotNullViolation:
 			msg := fmt.Sprintf("No %[1]s was provided. Please provide a %[1]s", column)
 			return &SQLError{
 				Message:  msg,
-				Code:     string(code),
+				Code:     code,
 				Column:   column,
 				Table:    table,
 				Severity: severity,
@@ -253,7 +253,7 @@ func GetError(err error) error {
 			} else {
 				return &SQLError{
 					Message:    message,
-					Code:       string(code),
+					Code:       code,
 					Column:     column,
 					Table:      table,
 					Severity:   severity,
@@ -263,7 +263,7 @@ func GetError(err error) error {
 		default:
 			return &SQLError{
 				Message:    message,
-				Code:       string(code),
+				Code:       code,
 				Column:     column,
 				Constraint: constraint,
 				Table:      table,

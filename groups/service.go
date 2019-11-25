@@ -62,7 +62,10 @@ func (g *groupService) Create(groupPayload *GroupPayload, organization *models.O
 		}
 	}
 	newGroup.Users = userList
-	tx.Commit()
+	err = tx.Commit()
+	if err != nil {
+		return nil, err
+	}
 	return newGroup, err
 }
 

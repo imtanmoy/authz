@@ -3,7 +3,7 @@ module github.com/imtanmoy/authz
 go 1.13
 
 require (
-	github.com/casbin/casbin/v2 v2.1.1
+	github.com/casbin/casbin/v2 v2.1.2
 	github.com/go-chi/chi v4.0.2+incompatible
 	github.com/go-chi/render v1.0.1
 	github.com/go-pg/migrations/v7 v7.1.6
