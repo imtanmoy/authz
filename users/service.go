@@ -13,12 +13,15 @@ type Service interface {
 	Update(organization *models.User) (*models.User, error)
 	Delete(organization *models.User) error
 	Exists(ID int32) bool
+	FindAllByIdIn(ids []int32) []*models.User
 }
 
 type userService struct {
 	db         *pg.DB
 	repository Repository
 }
+
+var _ Service = (*userService)(nil)
 
 func NewUserService(db *pg.DB) Service {
 	return &userService{
@@ -61,4 +64,6 @@ func (u *userService) Delete(user *models.User) error {
 	return u.repository.Delete(tx, user)
 }
 
-var _ Service = (*userService)(nil)
+func (u *userService) FindAllByIdIn(ids []int32) []*models.User {
+	return u.repository.FindAllByIdIn(ids)
+}

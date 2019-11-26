@@ -2,13 +2,18 @@ package groups
 
 import (
 	"context"
+	"fmt"
 	"github.com/go-chi/render"
 	"github.com/go-pg/pg/v9"
+	"github.com/imtanmoy/authz/casbin"
 	"github.com/imtanmoy/authz/models"
 	"github.com/imtanmoy/authz/organizations"
+	"github.com/imtanmoy/authz/users"
 	"github.com/imtanmoy/authz/utils/httputil"
 	param "github.com/oceanicdev/chi-param"
 	"net/http"
+	"strconv"
+	"strings"
 )
 
 // Handler handles groups http method
@@ -21,6 +26,7 @@ type Handler interface {
 type groupHandler struct {
 	service             Service
 	organizationService organizations.Service
+	userService         users.Service
 	db                  *pg.DB
 }
 
@@ -31,6 +37,7 @@ func NewGroupHandler(db *pg.DB) Handler {
 	return &groupHandler{
 		service:             NewGroupService(db),
 		organizationService: organizations.NewOrganizationService(db),
+		userService:         users.NewUserService(db),
 		db:                  db,
 	}
 }
@@ -63,6 +70,18 @@ func (g *groupHandler) List(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		_ = render.Render(w, r, httputil.NewAPIError(err))
 		return
+	}
+	for _, group := range groups {
+		userList, err := casbin.Enforcer.GetUsersForRole(fmt.Sprintf("group::%d", group.ID))
+		var userIDs []int32
+
+		if err == nil {
+			for _, user1 := range userList {
+				userID, _ := strconv.ParseInt(strings.Split(user1, "::")[1], 10, 32)
+				userIDs = append(userIDs, int32(int(userID)))
+			}
+			group.Users = g.userService.FindAllByIdIn(userIDs)
+		}
 	}
 	if err := render.RenderList(w, r, NewGroupListResponse(groups)); err != nil {
 		_ = render.Render(w, r, httputil.NewAPIError(err))
