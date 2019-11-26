@@ -113,13 +113,13 @@ func (g *groupHandler) Create(w http.ResponseWriter, r *http.Request) {
 	// request validation
 	validationErrors := data.validate()
 	// check if users belongs to the organization
-	users, _ := g.organizationService.FindUsersByIds(organization, data.Users)
-	if len(users) != len(data.Users) {
+	userList, _ := g.organizationService.FindUsersByIds(organization, data.Users)
+	if len(userList) != len(data.Users) {
 		validationErrors.Add("users", "invalid user list")
 	}
 	// check if permissions belongs to the organization
-	permissions, _ := g.organizationService.FindPermissionsByIds(organization, data.Permissions)
-	if len(permissions) != len(data.Permissions) {
+	permissionList, _ := g.organizationService.FindPermissionsByIds(organization, data.Permissions)
+	if len(permissionList) != len(data.Permissions) {
 		validationErrors.Add("permissions", "invalid permission list")
 	}
 
@@ -138,14 +138,14 @@ func (g *groupHandler) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	newGroup, err := g.service.Create(data, organization, users, permissions)
+	newGroup, err := g.service.Create(data, organization, userList, permissionList)
 
 	if err != nil {
 		_ = render.Render(w, r, httputil.NewAPIError(err))
 		return
 	}
-	newGroup.Users = users
-	newGroup.Permissions = permissions
+	newGroup.Users = userList
+	newGroup.Permissions = permissionList
 
 	render.Status(r, http.StatusCreated)
 	_ = render.Render(w, r, NewGroupResponse(newGroup))
