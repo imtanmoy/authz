@@ -30,13 +30,14 @@ type User struct {
 
 // Group represent groups table
 type Group struct {
-	ID             int32     `pg:"id,notnull"`
-	Name           string    `pg:"name,notnull,unique:uk_groups_name_org"`
-	OrganizationID int32     `pg:"organization_id,notnull,unique:uk_groups_name_org"`
-	CreatedAt      time.Time `pg:"created_at,notnull,default:now()"`
-	UpdatedAt      time.Time `pg:"updated_at"`
+	ID             int32         `pg:"id,notnull"`
+	Name           string        `pg:"name,notnull,unique:uk_groups_name_org"`
+	OrganizationID int32         `pg:"organization_id,notnull,unique:uk_groups_name_org"`
+	CreatedAt      time.Time     `pg:"created_at,notnull,default:now()"`
+	UpdatedAt      time.Time     `pg:"updated_at,use_zero"`
+	Users          []*User       `pg:"-"`
+	Permissions    []*Permission `pg:"-"`
 	Organization   *Organization
-	//Users          []*User `pg:"-"`
 }
 
 var _ orm.BeforeInsertHook = (*Group)(nil)

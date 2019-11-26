@@ -117,6 +117,8 @@ func (g *groupHandler) Create(w http.ResponseWriter, r *http.Request) {
 		_ = render.Render(w, r, httputil.NewAPIError(err))
 		return
 	}
+	newGroup.Users = users
+	newGroup.Permissions = permissions
 
 	render.Status(r, http.StatusCreated)
 	_ = render.Render(w, r, NewGroupResponse(newGroup))

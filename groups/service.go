@@ -1,11 +1,11 @@
 package groups
 
 import (
+	"fmt"
 	"github.com/go-pg/pg/v9"
 	"github.com/imtanmoy/authz/casbin"
 	"github.com/imtanmoy/authz/models"
 	"github.com/imtanmoy/authz/users"
-	"strconv"
 )
 
 type Service interface {
@@ -59,13 +59,20 @@ func (g *groupService) Create(
 	err = tx.Commit()
 
 	for _, permission := range permissions {
-		_, err = casbin.Enforcer.AddPolicy(strconv.Itoa(int(newGroup.ID)), strconv.Itoa(int(permission.ID)), permission.Action)
+		groupID := fmt.Sprintf("group::%d", newGroup.ID)
+		permissionID := fmt.Sprintf("permission::%d", permission.ID)
+		params := []string{groupID, permissionID, permission.Action}
+		_, err = casbin.Enforcer.AddPolicy(params)
 		if err != nil {
 			return nil, err
 		}
 	}
+	fmt.Println(newGroup.UpdatedAt)
 	for _, user := range users {
-		_, err = casbin.Enforcer.AddGroupingPolicy(strconv.Itoa(int(user.ID)), strconv.Itoa(int(newGroup.ID)))
+		userID := fmt.Sprintf("user::%d", user.ID)
+		groupID := fmt.Sprintf("group::%d", newGroup.ID)
+		params := []string{userID, groupID}
+		_, err = casbin.Enforcer.AddGroupingPolicy(params)
 		if err != nil {
 			return nil, err
 		}
