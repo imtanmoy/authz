@@ -20,6 +20,9 @@ type Handler interface {
 	OrganizationCtx(next http.Handler) http.Handler
 	List(w http.ResponseWriter, r *http.Request)
 	Create(w http.ResponseWriter, r *http.Request)
+	Get(w http.ResponseWriter, r *http.Request)
+	Delete(w http.ResponseWriter, r *http.Request)
+	Update(w http.ResponseWriter, r *http.Request)
 }
 
 type groupHandler struct {
@@ -150,4 +153,16 @@ func (g *groupHandler) Create(w http.ResponseWriter, r *http.Request) {
 	render.Status(r, http.StatusCreated)
 	_ = render.Render(w, r, NewGroupResponse(newGroup))
 	return
+}
+
+func (g *groupHandler) Get(w http.ResponseWriter, r *http.Request) {
+	panic("implement me")
+}
+
+func (g *groupHandler) Delete(w http.ResponseWriter, r *http.Request) {
+	panic("implement me")
+}
+
+func (g *groupHandler) Update(w http.ResponseWriter, r *http.Request) {
+	panic("implement me")
 }
