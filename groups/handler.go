@@ -8,6 +8,7 @@ import (
 	"github.com/imtanmoy/authz/casbin"
 	"github.com/imtanmoy/authz/models"
 	"github.com/imtanmoy/authz/organizations"
+	"github.com/imtanmoy/authz/permissions"
 	"github.com/imtanmoy/authz/users"
 	"github.com/imtanmoy/authz/utils/httputil"
 	param "github.com/oceanicdev/chi-param"
@@ -27,6 +28,7 @@ type groupHandler struct {
 	service             Service
 	organizationService organizations.Service
 	userService         users.Service
+	permissionService   permissions.Service
 	db                  *pg.DB
 }
 
@@ -38,6 +40,7 @@ func NewGroupHandler(db *pg.DB) Handler {
 		service:             NewGroupService(db),
 		organizationService: organizations.NewOrganizationService(db),
 		userService:         users.NewUserService(db),
+		permissionService:   permissions.NewPermissionService(db),
 		db:                  db,
 	}
 }
@@ -81,6 +84,16 @@ func (g *groupHandler) List(w http.ResponseWriter, r *http.Request) {
 				userIDs = append(userIDs, int32(int(userID)))
 			}
 			group.Users = g.userService.FindAllByIdIn(userIDs)
+		}
+		pList, err := casbin.Enforcer.GetImplicitPermissionsForUser(fmt.Sprintf("group::%d", group.ID))
+		var pIDs []int32
+		if err == nil {
+			for _, p := range pList {
+				fmt.Println(strings.Split(p[1], "::")[1])
+				pID, _ := strconv.ParseInt(strings.Split(p[1], "::")[1], 10, 32)
+				pIDs = append(pIDs, int32(int(pID)))
+			}
+			group.Permissions = g.permissionService.FindAllByIdIn(pIDs)
 		}
 	}
 	if err := render.RenderList(w, r, NewGroupListResponse(groups)); err != nil {
