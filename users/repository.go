@@ -36,7 +36,7 @@ func (u *userRepository) List() ([]*models.User, error) {
 }
 
 func (u *userRepository) Find(ID int32) (*models.User, error) {
-	if u.Exists(ID) {
+	if !u.Exists(ID) {
 		return nil, errors.New("user does not exists")
 	}
 	user := new(models.User)

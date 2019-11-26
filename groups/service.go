@@ -12,6 +12,8 @@ type Service interface {
 	List(organization *models.Organization) ([]*models.Group, error)
 	Create(groupPayload *GroupPayload, organization *models.Organization, users []*models.User, permissions []*models.Permission) (*models.Group, error)
 	FindByName(organization *models.Organization, name string) (*models.Group, error)
+	Find(ID int32) (*models.Group, error)
+	Exists(ID int32) bool
 }
 
 type groupService struct {
@@ -82,4 +84,12 @@ func (g *groupService) Create(
 
 func (g *groupService) FindByName(organization *models.Organization, name string) (*models.Group, error) {
 	return g.repository.FindByName(organization, name)
+}
+
+func (g *groupService) Find(ID int32) (*models.Group, error) {
+	return g.repository.Find(ID)
+}
+
+func (g *groupService) Exists(ID int32) bool {
+	return g.repository.Exists(ID)
 }

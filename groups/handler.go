@@ -18,6 +18,7 @@ import (
 // Handler handles groups http method
 type Handler interface {
 	OrganizationCtx(next http.Handler) http.Handler
+	OrganizationGroupCtx(next http.Handler) http.Handler
 	List(w http.ResponseWriter, r *http.Request)
 	Create(w http.ResponseWriter, r *http.Request)
 	Get(w http.ResponseWriter, r *http.Request)
@@ -59,6 +60,38 @@ func (g *groupHandler) OrganizationCtx(next http.Handler) http.Handler {
 			return
 		}
 		ctx := context.WithValue(r.Context(), "organization", organization)
+		next.ServeHTTP(w, r.WithContext(ctx))
+	})
+}
+
+func (g *groupHandler) OrganizationGroupCtx(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		id, err := param.Int32(r, "id")
+		if err != nil {
+			_ = render.Render(w, r, httputil.NewAPIError(400, "Invalid request parameter", err))
+			return
+		}
+		group, err := g.service.Find(id)
+		fmt.Println("Handler")
+		fmt.Println(group)
+		if err != nil {
+			_ = render.Render(w, r, httputil.NewAPIError(404, "group not found", err))
+			return
+		}
+		ctx := r.Context()
+		organization, ok := ctx.Value("organization").(*models.Organization)
+		if !ok {
+			_ = render.Render(w, r, httputil.NewAPIError(422, "Request Can not be processed"))
+			return
+		}
+
+		//if group.OrganizationID != organization.ID {
+		//	_ = render.Render(w, r, httputil.NewAPIError(404, "group not found", err))
+		//	return
+		//}
+		fmt.Println(organization)
+		fmt.Println(group)
+		ctx = context.WithValue(r.Context(), "group", group)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }
@@ -156,7 +189,19 @@ func (g *groupHandler) Create(w http.ResponseWriter, r *http.Request) {
 }
 
 func (g *groupHandler) Get(w http.ResponseWriter, r *http.Request) {
-	panic("implement me")
+	ctx := r.Context()
+	group, ok := ctx.Value("group").(*models.Group)
+	if !ok {
+		_ = render.Render(w, r, httputil.NewAPIError(422, "Request Can not be processed"))
+		return
+	}
+
+	fmt.Println(group)
+
+	if err := render.Render(w, r, NewGroupResponse(group)); err != nil {
+		_ = render.Render(w, r, httputil.NewAPIError(err))
+		return
+	}
 }
 
 func (g *groupHandler) Delete(w http.ResponseWriter, r *http.Request) {
