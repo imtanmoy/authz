@@ -1,7 +1,6 @@
 package groups
 
 import (
-	"fmt"
 	"github.com/go-chi/render"
 	"github.com/imtanmoy/authz/models"
 	"gopkg.in/thedevsaddam/govalidator.v1"
@@ -97,7 +96,7 @@ func NewGroupResponse(group *models.Group) *GroupResponse {
 	for _, permission := range group.Permissions {
 		permissions = append(permissions, NewPermissionResponse(permission))
 	}
-	fmt.Println(group.UpdatedAt)
+
 	return &GroupResponse{
 		ID:          group.ID,
 		Name:        group.Name,
