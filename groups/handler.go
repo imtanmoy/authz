@@ -13,8 +13,6 @@ import (
 	"github.com/imtanmoy/authz/utils/httputil"
 	param "github.com/oceanicdev/chi-param"
 	"net/http"
-	"strconv"
-	"strings"
 )
 
 // Handler handles groups http method
@@ -76,22 +74,19 @@ func (g *groupHandler) List(w http.ResponseWriter, r *http.Request) {
 	}
 	for _, group := range groups {
 		userList, err := casbin.Enforcer.GetUsersForRole(fmt.Sprintf("group::%d", group.ID))
-		var userIDs []int32
+		var uIDs []int32
 
 		if err == nil {
-			for _, user1 := range userList {
-				userID, _ := strconv.ParseInt(strings.Split(user1, "::")[1], 10, 32)
-				userIDs = append(userIDs, int32(int(userID)))
+			for _, user := range userList {
+				uIDs = append(uIDs, GetIntID(user))
 			}
-			group.Users = g.userService.FindAllByIdIn(userIDs)
+			group.Users = g.userService.FindAllByIdIn(uIDs)
 		}
 		pList, err := casbin.Enforcer.GetImplicitPermissionsForUser(fmt.Sprintf("group::%d", group.ID))
 		var pIDs []int32
 		if err == nil {
 			for _, p := range pList {
-				fmt.Println(strings.Split(p[1], "::")[1])
-				pID, _ := strconv.ParseInt(strings.Split(p[1], "::")[1], 10, 32)
-				pIDs = append(pIDs, int32(int(pID)))
+				pIDs = append(pIDs, GetIntID(p[1]))
 			}
 			group.Permissions = g.permissionService.FindAllByIdIn(pIDs)
 		}
