@@ -69,8 +69,7 @@ func (g *groupService) Create(
 	// add permissions for group
 	for _, permission := range permissions {
 		permissionID := fmt.Sprintf("permission::%d", permission.ID)
-		params := []string{groupID, permissionID, permission.Action}
-		_, err = casbin.Enforcer.AddPolicy(params)
+		_, err = casbin.Enforcer.AddPermissionForUser(groupID, permissionID, permission.Action)
 		if err != nil {
 			return nil, err
 		}
