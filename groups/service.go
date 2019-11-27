@@ -14,6 +14,8 @@ type Service interface {
 	FindByName(organization *models.Organization, name string) (*models.Group, error)
 	Find(ID int32) (*models.Group, error)
 	Exists(ID int32) bool
+	FindByIdAndOrganizationId(Id int32, Oid int32) (*models.Group, error)
+	Update(group *models.Group, users []*models.User, permissions []*models.Permission) error
 }
 
 type groupService struct {
@@ -69,7 +71,6 @@ func (g *groupService) Create(
 			return nil, err
 		}
 	}
-	fmt.Println(newGroup.UpdatedAt)
 	for _, user := range users {
 		userID := fmt.Sprintf("user::%d", user.ID)
 		groupID := fmt.Sprintf("group::%d", newGroup.ID)
@@ -92,4 +93,41 @@ func (g *groupService) Find(ID int32) (*models.Group, error) {
 
 func (g *groupService) Exists(ID int32) bool {
 	return g.repository.Exists(ID)
+}
+
+func (g *groupService) FindByIdAndOrganizationId(Id int32, Oid int32) (*models.Group, error) {
+	return g.repository.FindByIdAndOrganizationId(Id, Oid)
+}
+
+func (g *groupService) Update(group *models.Group, users []*models.User, permissions []*models.Permission) error {
+	tx, err := g.db.Begin()
+	if err != nil {
+		return err
+	}
+
+	err = g.repository.Update(tx, group)
+	if err != nil {
+		_ = tx.Rollback()
+		return err
+	}
+	err = tx.Commit()
+	if err != nil {
+		return err
+	}
+	groupID := fmt.Sprintf("group::%d", group.ID)
+	gpermissions := casbin.Enforcer.GetPermissionsForUser(groupID)
+	existingPermissions := make([]int32, 0)
+	for _, permission := range gpermissions {
+		existingPermissions = append(existingPermissions, GetIntID(permission[1]))
+	}
+	newPermissions := make([]int32, 0)
+	for _, permission := range permissions {
+		newPermissions = append(newPermissions, permission.ID)
+	}
+	oldPermissions := Intersection(existingPermissions, newPermissions)
+	deletePermissions := Minus(existingPermissions, oldPermissions)
+
+	//create new permission with newPermissions
+	//delete permissions with deletePermissions
+	return nil
 }

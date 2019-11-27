@@ -2,7 +2,6 @@ package groups
 
 import (
 	"errors"
-	"fmt"
 	"github.com/go-pg/pg/v9"
 	"github.com/imtanmoy/authz/models"
 )
@@ -13,6 +12,9 @@ type Repository interface {
 	FindByName(organization *models.Organization, name string) (*models.Group, error)
 	Find(ID int32) (*models.Group, error)
 	Exists(ID int32) bool
+	FindByIdAndOrganizationId(Id int32, Oid int32) (*models.Group, error)
+	Delete(ID int32) (bool, error)
+	Update(tx *pg.Tx, group *models.Group) error
 }
 
 type groupRepository struct {
@@ -49,14 +51,10 @@ func (g *groupRepository) FindByName(organization *models.Organization, name str
 
 func (g *groupRepository) Find(ID int32) (*models.Group, error) {
 	if !g.Exists(ID) {
-		return nil, errors.New("group does not exist")
+		return nil, errors.New("group not found")
 	}
 	var group models.Group
-	err := g.db.Model(&group).Where("groups.id = ?", ID).Relation("Organization").Select()
-	fmt.Println("repo")
-	fmt.Println(ID)
-	fmt.Println(group)
-	fmt.Println(err)
+	err := g.db.Model(&group).Where("\"group\".id = ?", ID).Relation("Organization").Select()
 	return &group, err
 }
 
@@ -67,4 +65,22 @@ func (g *groupRepository) Exists(ID int32) bool {
 		panic(err)
 	}
 	return num == ID
+}
+
+func (g *groupRepository) FindByIdAndOrganizationId(Id int32, Oid int32) (*models.Group, error) {
+	var group models.Group
+	err := g.db.Model(&group).
+		Where("\"group\".id = ?", Id).
+		Where("\"group\".organization_id = ?", Oid).
+		Relation("Organization").Select()
+	return &group, err
+}
+
+func (g *groupRepository) Update(tx *pg.Tx, group *models.Group) error {
+	err := tx.Update(group)
+	return err
+}
+
+func (g *groupRepository) Delete(ID int32) (bool, error) {
+	panic("implement me")
 }

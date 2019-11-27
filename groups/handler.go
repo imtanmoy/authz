@@ -18,7 +18,7 @@ import (
 // Handler handles groups http method
 type Handler interface {
 	OrganizationCtx(next http.Handler) http.Handler
-	OrganizationGroupCtx(next http.Handler) http.Handler
+	GroupCtx(next http.Handler) http.Handler
 	List(w http.ResponseWriter, r *http.Request)
 	Create(w http.ResponseWriter, r *http.Request)
 	Get(w http.ResponseWriter, r *http.Request)
@@ -64,18 +64,11 @@ func (g *groupHandler) OrganizationCtx(next http.Handler) http.Handler {
 	})
 }
 
-func (g *groupHandler) OrganizationGroupCtx(next http.Handler) http.Handler {
+func (g *groupHandler) GroupCtx(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		id, err := param.Int32(r, "id")
 		if err != nil {
 			_ = render.Render(w, r, httputil.NewAPIError(400, "Invalid request parameter", err))
-			return
-		}
-		group, err := g.service.Find(id)
-		fmt.Println("Handler")
-		fmt.Println(group)
-		if err != nil {
-			_ = render.Render(w, r, httputil.NewAPIError(404, "group not found", err))
 			return
 		}
 		ctx := r.Context()
@@ -84,13 +77,11 @@ func (g *groupHandler) OrganizationGroupCtx(next http.Handler) http.Handler {
 			_ = render.Render(w, r, httputil.NewAPIError(422, "Request Can not be processed"))
 			return
 		}
-
-		//if group.OrganizationID != organization.ID {
-		//	_ = render.Render(w, r, httputil.NewAPIError(404, "group not found", err))
-		//	return
-		//}
-		fmt.Println(organization)
-		fmt.Println(group)
+		group, err := g.service.FindByIdAndOrganizationId(id, organization.ID)
+		if err != nil {
+			_ = render.Render(w, r, httputil.NewAPIError(404, "group not found", err))
+			return
+		}
 		ctx = context.WithValue(r.Context(), "group", group)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
@@ -195,9 +186,6 @@ func (g *groupHandler) Get(w http.ResponseWriter, r *http.Request) {
 		_ = render.Render(w, r, httputil.NewAPIError(422, "Request Can not be processed"))
 		return
 	}
-
-	fmt.Println(group)
-
 	if err := render.Render(w, r, NewGroupResponse(group)); err != nil {
 		_ = render.Render(w, r, httputil.NewAPIError(err))
 		return
@@ -205,9 +193,77 @@ func (g *groupHandler) Get(w http.ResponseWriter, r *http.Request) {
 }
 
 func (g *groupHandler) Delete(w http.ResponseWriter, r *http.Request) {
-	panic("implement me")
+	ctx := r.Context()
+	group, ok := ctx.Value("group").(*models.Group)
+	if !ok {
+		_ = render.Render(w, r, httputil.NewAPIError(422, "Request Can not be processed"))
+		return
+	}
+	if err := render.Render(w, r, NewGroupResponse(group)); err != nil {
+		_ = render.Render(w, r, httputil.NewAPIError(err))
+		return
+	}
 }
 
 func (g *groupHandler) Update(w http.ResponseWriter, r *http.Request) {
-	panic("implement me")
+	ctx := r.Context()
+	organization, ok := ctx.Value("organization").(*models.Organization)
+	if !ok {
+		_ = render.Render(w, r, httputil.NewAPIError(422, "Request Can not be processed"))
+		return
+	}
+	group, ok := ctx.Value("group").(*models.Group)
+	if !ok {
+		_ = render.Render(w, r, httputil.NewAPIError(422, "Request Can not be processed"))
+		return
+	}
+
+	data := &GroupPayload{}
+	if err := render.Bind(r, data); err != nil {
+		_ = render.Render(w, r, httputil.NewAPIError(422, "unable to decode the request content type"))
+		return
+	}
+
+	// request validation
+	validationErrors := data.validate()
+	// check if users belongs to the organization
+	userList, _ := g.organizationService.FindUsersByIds(organization, data.Users)
+	if len(userList) != len(data.Users) {
+		validationErrors.Add("users", "invalid user list")
+	}
+	// check if permissions belongs to the organization
+	permissionList, _ := g.organizationService.FindPermissionsByIds(organization, data.Permissions)
+	if len(permissionList) != len(data.Permissions) {
+		validationErrors.Add("permissions", "invalid permission list")
+	}
+
+	if len(validationErrors) > 0 {
+		_ = render.Render(w, r, httputil.NewAPIError(400, "Invalid request", validationErrors))
+		return
+	}
+	// check if group with same name already exist
+	existGroup, err := g.service.FindByName(organization, data.Name)
+	if err == nil && existGroup.Name == data.Name && group.Name != data.Name {
+		validationErrors.Add("name", "Group with same name already exits")
+	}
+	if len(validationErrors) > 0 {
+		_ = render.Render(w, r, httputil.NewAPIError(400, "Invalid Request", validationErrors))
+		return
+	}
+
+	//update group data
+	group.Name = data.Name
+
+	err = g.service.Update(group, userList, permissionList)
+
+	if err != nil {
+		_ = render.Render(w, r, httputil.NewAPIError(err))
+		return
+	}
+	group.Users = userList
+	group.Permissions = permissionList
+
+	render.Status(r, http.StatusCreated)
+	_ = render.Render(w, r, NewGroupResponse(group))
+	return
 }

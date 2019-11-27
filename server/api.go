@@ -80,7 +80,7 @@ func groupRouter() http.Handler {
 		r.Get("/", groupHandler.List)
 		r.Post("/", groupHandler.Create)
 		r.Group(func(r chi.Router) {
-			r.Use(groupHandler.OrganizationGroupCtx)
+			r.Use(groupHandler.GroupCtx)
 			r.Get("/{id}", groupHandler.Get)
 			r.Put("/{id}", groupHandler.Update)
 			r.Delete("/{id}", groupHandler.Delete)

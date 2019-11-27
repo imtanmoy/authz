@@ -90,3 +90,12 @@ VALUES (1, 'PERMISSION_1', 'ALL', 1);
 INSERT INTO permissions (id, name, action, organization_id)
 VALUES (2, 'PERMISSION_2', 'ALL', 1);
 
+INSERT INTO permissions (id, name, action, organization_id)
+VALUES (3, 'PERMISSION_3', 'ALL', 1);
+
+INSERT INTO permissions (id, name, action, organization_id)
+VALUES (4, 'PERMISSION_4', 'ALL', 1);
+
+INSERT INTO permissions (id, name, action, organization_id)
+VALUES (5, 'PERMISSION_5', 'ALL', 1);
+

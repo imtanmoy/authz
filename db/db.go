@@ -1,6 +1,7 @@
 package db
 
 import (
+	"context"
 	"strconv"
 
 	"github.com/go-pg/pg/v9"
@@ -9,6 +10,17 @@ import (
 )
 
 var DB *pg.DB
+
+type dbLogger struct{}
+
+func (d dbLogger) BeforeQuery(c context.Context, q *pg.QueryEvent) (context.Context, error) {
+	return c, nil
+}
+
+func (d dbLogger) AfterQuery(c context.Context, q *pg.QueryEvent) error {
+	//fmt.Println(q.FormattedQuery())
+	return nil
+}
 
 func InitDB() error {
 	db := pg.Connect(&pg.Options{
@@ -22,6 +34,7 @@ func InitDB() error {
 	if err != nil {
 		return err
 	}
+	db.AddQueryHook(dbLogger{})
 	DB = db
 	return nil
 }
