@@ -5,6 +5,7 @@ import (
 	"github.com/go-pg/pg/v9"
 	"github.com/imtanmoy/authz/casbin"
 	"github.com/imtanmoy/authz/models"
+	"github.com/imtanmoy/authz/permissions"
 	"github.com/imtanmoy/authz/users"
 )
 
@@ -19,18 +20,20 @@ type Service interface {
 }
 
 type groupService struct {
-	db             *pg.DB
-	repository     Repository
-	userRepository users.Repository
+	db                   *pg.DB
+	repository           Repository
+	userRepository       users.Repository
+	permissionRepository permissions.Repository
 }
 
 var _ Service = (*groupService)(nil)
 
 func NewGroupService(db *pg.DB) Service {
 	return &groupService{
-		db:             db,
-		repository:     NewGroupRepository(db),
-		userRepository: users.NewUserRepository(db),
+		db:                   db,
+		repository:           NewGroupRepository(db),
+		userRepository:       users.NewUserRepository(db),
+		permissionRepository: permissions.NewPermissionRepository(db),
 	}
 }
 
@@ -128,6 +131,29 @@ func (g *groupService) Update(group *models.Group, users []*models.User, permiss
 	deletePermissions := Minus(existingPermissions, oldPermissions)
 
 	//create new permission with newPermissions
+	for _, permission := range permissions {
+		if Exists(newPermissions, permission.ID) {
+			permissionID := fmt.Sprintf("permission::%d", permission.ID)
+			params := []string{groupID, permissionID, permission.Action}
+			_, err = casbin.Enforcer.AddPolicy(params)
+			if err != nil {
+				return err
+			}
+		}
+	}
+
 	//delete permissions with deletePermissions
+	deletePermissionModels := g.permissionRepository.FindAllByIdIn(deletePermissions)
+	for _, permission := range deletePermissionModels {
+		permissionID := fmt.Sprintf("permission::%d", permission.ID)
+		params := []string{groupID, permissionID, permission.Action}
+		_, err = casbin.Enforcer.RemovePolicy(params)
+		if err != nil {
+			return err
+		}
+	}
+
+	group.Permissions = permissions
+
 	return nil
 }

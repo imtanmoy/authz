@@ -261,7 +261,7 @@ func (g *groupHandler) Update(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	group.Users = userList
-	group.Permissions = permissionList
+	//group.Permissions = permissionList
 
 	render.Status(r, http.StatusCreated)
 	_ = render.Render(w, r, NewGroupResponse(group))
