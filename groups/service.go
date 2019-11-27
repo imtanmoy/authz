@@ -64,9 +64,10 @@ func (g *groupService) Create(
 		return nil, err
 	}
 	err = tx.Commit()
+	groupID := fmt.Sprintf("group::%d", newGroup.ID)
 
+	// add permissions for group
 	for _, permission := range permissions {
-		groupID := fmt.Sprintf("group::%d", newGroup.ID)
 		permissionID := fmt.Sprintf("permission::%d", permission.ID)
 		params := []string{groupID, permissionID, permission.Action}
 		_, err = casbin.Enforcer.AddPolicy(params)
@@ -76,9 +77,7 @@ func (g *groupService) Create(
 	}
 	for _, user := range users {
 		userID := fmt.Sprintf("user::%d", user.ID)
-		groupID := fmt.Sprintf("group::%d", newGroup.ID)
-		params := []string{userID, groupID}
-		_, err = casbin.Enforcer.AddGroupingPolicy(params)
+		_, err = casbin.Enforcer.AddRoleForUser(userID, groupID)
 		if err != nil {
 			return nil, err
 		}
@@ -154,6 +153,46 @@ func (g *groupService) Update(group *models.Group, users []*models.User, permiss
 	}
 
 	group.Permissions = permissions
+
+	gUsers, err := casbin.Enforcer.GetUsersForRole(groupID)
+	if err != nil {
+		return err
+	}
+	// group user update
+	existingUsers := make([]int32, 0)
+	for _, user := range gUsers {
+		existingUsers = append(existingUsers, GetIntID(user))
+	}
+	newUsers := make([]int32, 0)
+	for _, user := range users {
+		newUsers = append(newUsers, user.ID)
+	}
+	oldUsers := Intersection(existingUsers, newUsers)
+	deleteUsers := Minus(existingUsers, oldUsers)
+
+	//add new users to group
+	for _, user := range users {
+		if Exists(newUsers, user.ID) {
+			userID := fmt.Sprintf("user::%d", user.ID)
+			_, err = casbin.Enforcer.AddRoleForUser(userID, groupID)
+			if err != nil {
+				return err
+			}
+		}
+	}
+
+	//delete users from group
+	deleteUsersModels := g.userRepository.FindAllByIdIn(deleteUsers)
+	for _, user := range deleteUsersModels {
+		fmt.Println(user)
+		userID := fmt.Sprintf("user::%d", user.ID)
+		_, err = casbin.Enforcer.DeleteRoleForUser(userID, groupID)
+		if err != nil {
+			return err
+		}
+	}
+
+	group.Users = users
 
 	return nil
 }
