@@ -7,13 +7,13 @@ import (
 )
 
 type Repository interface {
-	List(organization *models.Organization) ([]*models.Group, error)
+	List(organizationId int32) ([]*models.Group, error)
 	Create(tx *pg.Tx, group *models.Group) (*models.Group, error)
 	FindByName(organization *models.Organization, name string) (*models.Group, error)
 	Find(ID int32) (*models.Group, error)
 	Exists(ID int32) bool
 	FindByIdAndOrganizationId(Id int32, Oid int32) (*models.Group, error)
-	Delete(ID int32) (bool, error)
+	Delete(group *models.Group) error
 	Update(tx *pg.Tx, group *models.Group) error
 }
 
@@ -29,9 +29,9 @@ func NewGroupRepository(db *pg.DB) Repository {
 	}
 }
 
-func (g *groupRepository) List(organization *models.Organization) ([]*models.Group, error) {
+func (g *groupRepository) List(organizationId int32) ([]*models.Group, error) {
 	var groups []*models.Group
-	err := g.db.Model(&groups).Where("organization_id = ?", organization.ID).Relation("Organization").Select()
+	err := g.db.Model(&groups).Where("organization_id = ?", organizationId).Relation("Organization").Select()
 	return groups, err
 }
 
@@ -81,6 +81,7 @@ func (g *groupRepository) Update(tx *pg.Tx, group *models.Group) error {
 	return err
 }
 
-func (g *groupRepository) Delete(ID int32) (bool, error) {
-	panic("implement me")
+func (g *groupRepository) Delete(group *models.Group) error {
+	err := g.db.Delete(group)
+	return err
 }

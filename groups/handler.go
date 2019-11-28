@@ -199,10 +199,12 @@ func (g *groupHandler) Delete(w http.ResponseWriter, r *http.Request) {
 		_ = render.Render(w, r, httputil.NewAPIError(422, "Request Can not be processed"))
 		return
 	}
-	if err := render.Render(w, r, NewGroupResponse(group)); err != nil {
+	err := g.service.Delete(group)
+	if err != nil {
 		_ = render.Render(w, r, httputil.NewAPIError(err))
 		return
 	}
+	render.NoContent(w, r)
 }
 
 func (g *groupHandler) Update(w http.ResponseWriter, r *http.Request) {
@@ -260,7 +262,7 @@ func (g *groupHandler) Update(w http.ResponseWriter, r *http.Request) {
 		_ = render.Render(w, r, httputil.NewAPIError(err))
 		return
 	}
-	group.Users = userList
+	//group.Users = userList
 	//group.Permissions = permissionList
 
 	render.Status(r, http.StatusCreated)

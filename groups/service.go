@@ -17,6 +17,7 @@ type Service interface {
 	Exists(ID int32) bool
 	FindByIdAndOrganizationId(Id int32, Oid int32) (*models.Group, error)
 	Update(group *models.Group, users []*models.User, permissions []*models.Permission) error
+	Delete(group *models.Group) error
 }
 
 type groupService struct {
@@ -38,7 +39,7 @@ func NewGroupService(db *pg.DB) Service {
 }
 
 func (g *groupService) List(organization *models.Organization) ([]*models.Group, error) {
-	return g.repository.List(organization)
+	return g.repository.List(organization.ID)
 }
 
 func (g *groupService) Create(
@@ -194,4 +195,10 @@ func (g *groupService) Update(group *models.Group, users []*models.User, permiss
 	group.Users = users
 
 	return nil
+}
+
+func (g *groupService) Delete(group *models.Group) error {
+	//groupID := fmt.Sprintf("group::%d", group.ID)
+	//gpermissions := casbin.Enforcer.GetPermissionsForUser(groupID)
+	return g.repository.Delete(group)
 }
