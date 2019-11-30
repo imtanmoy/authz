@@ -2,10 +2,8 @@ package groups
 
 import (
 	"context"
-	"fmt"
 	"github.com/go-chi/render"
 	"github.com/go-pg/pg/v9"
-	"github.com/imtanmoy/authz/casbin"
 	"github.com/imtanmoy/authz/models"
 	"github.com/imtanmoy/authz/organizations"
 	"github.com/imtanmoy/authz/permissions"
@@ -99,25 +97,6 @@ func (g *groupHandler) List(w http.ResponseWriter, r *http.Request) {
 		_ = render.Render(w, r, httputil.NewAPIError(err))
 		return
 	}
-	for _, group := range groups {
-		userList, err := casbin.Enforcer.GetUsersForRole(fmt.Sprintf("group::%d", group.ID))
-		var uIDs []int32
-
-		if err == nil {
-			for _, user := range userList {
-				uIDs = append(uIDs, GetIntID(user))
-			}
-			group.Users = g.userService.FindAllByIdIn(uIDs)
-		}
-		pList, err := casbin.Enforcer.GetImplicitPermissionsForUser(fmt.Sprintf("group::%d", group.ID))
-		var pIDs []int32
-		if err == nil {
-			for _, p := range pList {
-				pIDs = append(pIDs, GetIntID(p[1]))
-			}
-			group.Permissions = g.permissionService.FindAllByIdIn(pIDs)
-		}
-	}
 	if err := render.RenderList(w, r, NewGroupListResponse(groups)); err != nil {
 		_ = render.Render(w, r, httputil.NewAPIError(err))
 		return
@@ -171,8 +150,6 @@ func (g *groupHandler) Create(w http.ResponseWriter, r *http.Request) {
 		_ = render.Render(w, r, httputil.NewAPIError(err))
 		return
 	}
-	newGroup.Users = userList
-	newGroup.Permissions = permissionList
 
 	render.Status(r, http.StatusCreated)
 	_ = render.Render(w, r, NewGroupResponse(newGroup))

@@ -1,4 +1,4 @@
-package groups
+package utils
 
 import (
 	"strconv"
