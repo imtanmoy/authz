@@ -1,7 +1,6 @@
 package groups
 
 import (
-	"fmt"
 	"github.com/go-pg/pg/v9"
 	"github.com/imtanmoy/authz/casbin"
 	"github.com/imtanmoy/authz/models"
@@ -55,11 +54,11 @@ func (g *groupService) List(organization *models.Organization) ([]*models.Group,
 	}
 
 	for _, group := range groups {
-		userList, err := g.casbinService.GetUsersForGroup(group.ID)
+		permissionList, err := g.casbinService.GetPermissionsForGroup(group.ID)
 		if err != nil {
 			return nil, err
 		}
-		group.Users = userList
+		group.Permissions = permissionList
 	}
 	return groups, nil
 }
@@ -134,11 +133,15 @@ func (g *groupService) Update(group *models.Group, users []*models.User, permiss
 	if err != nil {
 		return err
 	}
-	groupID := fmt.Sprintf("group::%d", group.ID)
-	gpermissions := casbin.Enforcer.GetPermissionsForUser(groupID)
+
+	// permission update
+	permissionList, err := g.casbinService.GetPermissionsForGroup(group.ID)
+	if err != nil {
+		return err
+	}
 	existingPermissions := make([]int32, 0)
-	for _, permission := range gpermissions {
-		existingPermissions = append(existingPermissions, utils.GetIntID(permission[1]))
+	for _, permission := range permissionList {
+		existingPermissions = append(existingPermissions, permission.ID)
 	}
 	newPermissions := make([]int32, 0)
 	for _, permission := range permissions {
@@ -148,38 +151,30 @@ func (g *groupService) Update(group *models.Group, users []*models.User, permiss
 	deletePermissions := utils.Minus(existingPermissions, oldPermissions)
 
 	//create new permission with newPermissions
-	for _, permission := range permissions {
-		if utils.Exists(newPermissions, permission.ID) {
-			permissionID := fmt.Sprintf("permission::%d", permission.ID)
-			params := []string{groupID, permissionID, permission.Action}
-			_, err = casbin.Enforcer.AddPolicy(params)
-			if err != nil {
-				return err
-			}
-		}
+	willBeAddedPermissions := utils.Minus(newPermissions, oldPermissions)
+	willBeAddedPermissionModels := g.permissionRepository.FindAllByIdIn(willBeAddedPermissions)
+	err = g.casbinService.AddPermissionsForGroup(group.ID, willBeAddedPermissionModels)
+	if err != nil {
+		return err
 	}
 
 	//delete permissions with deletePermissions
 	deletePermissionModels := g.permissionRepository.FindAllByIdIn(deletePermissions)
-	for _, permission := range deletePermissionModels {
-		permissionID := fmt.Sprintf("permission::%d", permission.ID)
-		params := []string{groupID, permissionID, permission.Action}
-		_, err = casbin.Enforcer.RemovePolicy(params)
-		if err != nil {
-			return err
-		}
+	err = g.casbinService.RemovePermissionsForGroup(group.ID, deletePermissionModels)
+	if err != nil {
+		return nil
 	}
-
 	group.Permissions = permissions
 
-	gUsers, err := casbin.Enforcer.GetUsersForRole(groupID)
+	// user update
+	userList, err := g.casbinService.GetUsersForGroup(group.ID)
 	if err != nil {
 		return err
 	}
 	// group user update
 	existingUsers := make([]int32, 0)
-	for _, user := range gUsers {
-		existingUsers = append(existingUsers, utils.GetIntID(user))
+	for _, user := range userList {
+		existingUsers = append(existingUsers, user.ID)
 	}
 	newUsers := make([]int32, 0)
 	for _, user := range users {
@@ -188,26 +183,19 @@ func (g *groupService) Update(group *models.Group, users []*models.User, permiss
 	oldUsers := utils.Intersection(existingUsers, newUsers)
 	deleteUsers := utils.Minus(existingUsers, oldUsers)
 
-	//add new users to group
-	for _, user := range users {
-		if utils.Exists(newUsers, user.ID) {
-			userID := fmt.Sprintf("user::%d", user.ID)
-			_, err = casbin.Enforcer.AddRoleForUser(userID, groupID)
-			if err != nil {
-				return err
-			}
-		}
+	// add users for group
+	willBeAddedUsers := utils.Minus(newUsers, oldUsers)
+	willBeAddedUserModels := g.userRepository.FindAllByIdIn(willBeAddedUsers)
+	err = g.casbinService.AddUsersForGroup(group.ID, willBeAddedUserModels)
+	if err != nil {
+		return err
 	}
 
 	//delete users from group
 	deleteUsersModels := g.userRepository.FindAllByIdIn(deleteUsers)
-	for _, user := range deleteUsersModels {
-		fmt.Println(user)
-		userID := fmt.Sprintf("user::%d", user.ID)
-		_, err = casbin.Enforcer.DeleteRoleForUser(userID, groupID)
-		if err != nil {
-			return err
-		}
+	err = g.casbinService.RemoveUsersForGroup(group.ID, deleteUsersModels)
+	if err != nil {
+		return err
 	}
 
 	group.Users = users
