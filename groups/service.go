@@ -152,14 +152,16 @@ func (g *groupService) Update(group *models.Group, users []*models.User, permiss
 
 	//create new permission with newPermissions
 	willBeAddedPermissions := utils.Minus(newPermissions, oldPermissions)
-	willBeAddedPermissionModels := g.permissionRepository.FindAllByIdIn(willBeAddedPermissions)
+	//willBeAddedPermissionModels := g.permissionRepository.FindAllByIdIn(willBeAddedPermissions)
+	willBeAddedPermissionModels := getPermissionModels(willBeAddedPermissions, permissions)
 	err = g.casbinService.AddPermissionsForGroup(group.ID, willBeAddedPermissionModels)
 	if err != nil {
 		return err
 	}
 
 	//delete permissions with deletePermissions
-	deletePermissionModels := g.permissionRepository.FindAllByIdIn(deletePermissions)
+	//deletePermissionModels := g.permissionRepository.FindAllByIdIn(deletePermissions)
+	deletePermissionModels := getPermissionModels(deletePermissions, permissionList)
 	err = g.casbinService.RemovePermissionsForGroup(group.ID, deletePermissionModels)
 	if err != nil {
 		return nil
@@ -185,14 +187,16 @@ func (g *groupService) Update(group *models.Group, users []*models.User, permiss
 
 	// add users for group
 	willBeAddedUsers := utils.Minus(newUsers, oldUsers)
-	willBeAddedUserModels := g.userRepository.FindAllByIdIn(willBeAddedUsers)
+	//willBeAddedUserModels := g.userRepository.FindAllByIdIn(willBeAddedUsers)
+	willBeAddedUserModels := getUserModels(willBeAddedUsers, users)
 	err = g.casbinService.AddUsersForGroup(group.ID, willBeAddedUserModels)
 	if err != nil {
 		return err
 	}
 
 	//delete users from group
-	deleteUsersModels := g.userRepository.FindAllByIdIn(deleteUsers)
+	//deleteUsersModels := g.userRepository.FindAllByIdIn(deleteUsers)
+	deleteUsersModels := getUserModels(deleteUsers, userList)
 	err = g.casbinService.RemoveUsersForGroup(group.ID, deleteUsersModels)
 	if err != nil {
 		return err
@@ -204,7 +208,25 @@ func (g *groupService) Update(group *models.Group, users []*models.User, permiss
 }
 
 func (g *groupService) Delete(group *models.Group) error {
-	//groupID := fmt.Sprintf("group::%d", group.ID)
-	//gpermissions := casbin.Enforcer.GetPermissionsForUser(groupID)
 	return g.repository.Delete(group)
+}
+
+func getPermissionModels(ids []int32, permissions []*models.Permission) []*models.Permission {
+	list := make([]*models.Permission, 0)
+	for _, permission := range permissions {
+		if utils.Exists(ids, permission.ID) {
+			list = append(list, permission)
+		}
+	}
+	return list
+}
+
+func getUserModels(ids []int32, users []*models.User) []*models.User {
+	list := make([]*models.User, 0)
+	for _, user := range users {
+		if utils.Exists(ids, user.ID) {
+			list = append(list, user)
+		}
+	}
+	return list
 }
