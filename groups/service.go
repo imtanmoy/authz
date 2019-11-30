@@ -12,12 +12,12 @@ import (
 type Service interface {
 	List(organization *models.Organization) ([]*models.Group, error)
 	Create(groupPayload *GroupPayload, organization *models.Organization, users []*models.User, permissions []*models.Permission) (*models.Group, error)
-	FindByName(organization *models.Organization, name string) (*models.Group, error)
 	Find(ID int32) (*models.Group, error)
-	Exists(ID int32) bool
-	FindByIdAndOrganizationId(Id int32, Oid int32) (*models.Group, error)
 	Update(group *models.Group, users []*models.User, permissions []*models.Permission) error
 	Delete(group *models.Group) error
+	Exists(ID int32) bool
+	FindByName(organization *models.Organization, name string) (*models.Group, error)
+	FindByIdAndOrganizationId(Id int32, Oid int32) (*models.Group, error)
 }
 
 type groupService struct {
@@ -102,20 +102,25 @@ func (g *groupService) Create(
 	return newGroup, err
 }
 
-func (g *groupService) FindByName(organization *models.Organization, name string) (*models.Group, error) {
-	return g.repository.FindByName(organization, name)
-}
-
 func (g *groupService) Find(ID int32) (*models.Group, error) {
-	return g.repository.Find(ID)
-}
+	group, err := g.repository.Find(ID)
+	if err != nil {
+		return nil, err
+	}
+	// get user list
+	userList, err := g.casbinService.GetUsersForGroup(group.ID)
+	if err != nil {
+		return nil, err
+	}
+	group.Users = userList
 
-func (g *groupService) Exists(ID int32) bool {
-	return g.repository.Exists(ID)
-}
-
-func (g *groupService) FindByIdAndOrganizationId(Id int32, Oid int32) (*models.Group, error) {
-	return g.repository.FindByIdAndOrganizationId(Id, Oid)
+	// get permission list
+	permissionList, err := g.casbinService.GetPermissionsForGroup(group.ID)
+	if err != nil {
+		return nil, err
+	}
+	group.Permissions = permissionList
+	return group, nil
 }
 
 func (g *groupService) Update(group *models.Group, users []*models.User, permissions []*models.Permission) error {
@@ -208,7 +213,41 @@ func (g *groupService) Update(group *models.Group, users []*models.User, permiss
 }
 
 func (g *groupService) Delete(group *models.Group) error {
+	err := g.casbinService.DeleteGroup(group.ID) // it will delete all permissions and users
+	if err != nil {
+		return err
+	}
 	return g.repository.Delete(group)
+}
+
+func (g *groupService) Exists(ID int32) bool {
+	return g.repository.Exists(ID)
+}
+
+func (g *groupService) FindByName(organization *models.Organization, name string) (*models.Group, error) {
+	return g.repository.FindByName(organization, name)
+}
+
+func (g *groupService) FindByIdAndOrganizationId(Id int32, Oid int32) (*models.Group, error) {
+	group, err := g.repository.FindByIdAndOrganizationId(Id, Oid)
+	if err != nil {
+		return nil, err
+	}
+
+	// get user list
+	userList, err := g.casbinService.GetUsersForGroup(group.ID)
+	if err != nil {
+		return nil, err
+	}
+	group.Users = userList
+
+	// get permission list
+	permissionList, err := g.casbinService.GetPermissionsForGroup(group.ID)
+	if err != nil {
+		return nil, err
+	}
+	group.Permissions = permissionList
+	return group, nil
 }
 
 func getPermissionModels(ids []int32, permissions []*models.Permission) []*models.Permission {

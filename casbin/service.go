@@ -19,6 +19,8 @@ type Service interface {
 	AddUsersForGroup(id int32, users []*models.User) error
 	GetUsersForGroup(id int32) ([]*models.User, error)
 	RemoveUsersForGroup(id int32, users []*models.User) error
+
+	DeleteGroup(id int32) error
 }
 
 type casbinService struct {
@@ -118,4 +120,10 @@ func (c *casbinService) RemoveUsersForGroup(id int32, users []*models.User) erro
 		}
 	}
 	return nil
+}
+
+func (c *casbinService) DeleteGroup(id int32) error {
+	groupId := fmt.Sprintf("group::%d", id)
+	_, err := Enforcer.DeleteRole(groupId)
+	return err
 }
