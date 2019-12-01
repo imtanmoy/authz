@@ -39,9 +39,9 @@ func (u *userRepository) Find(ID int32) (*models.User, error) {
 	if !u.Exists(ID) {
 		return nil, errors.New("user does not exists")
 	}
-	user := new(models.User)
-	err := u.db.Model(user).Where("id = ?", ID).Relation("Organization").Select()
-	return user, err
+	var user models.User
+	err := u.db.Model(&user).Where("\"user\".id = ?", ID).Relation("Organization").Select()
+	return &user, err
 }
 
 func (u *userRepository) Create(tx *pg.Tx, user *models.User) (*models.User, error) {

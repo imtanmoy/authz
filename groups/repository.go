@@ -15,6 +15,7 @@ type Repository interface {
 	FindByIdAndOrganizationId(Id int32, Oid int32) (*models.Group, error)
 	Delete(group *models.Group) error
 	Update(tx *pg.Tx, group *models.Group) error
+	FindAllByIdIn(ids []int32) []*models.Group
 }
 
 type groupRepository struct {
@@ -84,4 +85,12 @@ func (g *groupRepository) Update(tx *pg.Tx, group *models.Group) error {
 func (g *groupRepository) Delete(group *models.Group) error {
 	err := g.db.Delete(group)
 	return err
+}
+
+func (g *groupRepository) FindAllByIdIn(ids []int32) []*models.Group {
+	var groups []*models.Group
+	_ = g.db.Model(&groups). // TODO err handling
+		Where("id in (?)", pg.In(ids)).
+		Select()
+	return groups
 }

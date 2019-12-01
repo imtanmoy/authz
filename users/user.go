@@ -43,9 +43,9 @@ func newGroupsResponse(group *models.Group) *groupResponse {
 
 func NewUserResponse(user *models.User) *UserResponse {
 	var groups []*groupResponse
-	//for _, group := range user.Groups {
-	//	groups = append(groups, newGroupsResponse(group))
-	//}
+	for _, group := range user.Groups {
+		groups = append(groups, newGroupsResponse(group))
+	}
 	return &UserResponse{
 		ID:     user.ID,
 		Email:  user.Email,

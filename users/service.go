@@ -2,6 +2,7 @@ package users
 
 import (
 	"github.com/go-pg/pg/v9"
+	"github.com/imtanmoy/authz/authorizer"
 	"github.com/imtanmoy/authz/models"
 )
 
@@ -14,19 +15,23 @@ type Service interface {
 	Delete(organization *models.User) error
 	Exists(ID int32) bool
 	FindAllByIdIn(ids []int32) []*models.User
+	GetGroups(user *models.User) ([]*models.Group, error)
+	GetPermissions(user *models.User) ([]*models.Permission, error)
 }
 
 type userService struct {
-	db         *pg.DB
-	repository Repository
+	db                *pg.DB
+	repository        Repository
+	authorizerService authorizer.Service
 }
 
 var _ Service = (*userService)(nil)
 
 func NewUserService(db *pg.DB) Service {
 	return &userService{
-		repository: NewUserRepository(db),
-		db:         db,
+		repository:        NewUserRepository(db),
+		db:                db,
+		authorizerService: authorizer.NewAuthorizerService(db),
 	}
 }
 
@@ -66,4 +71,17 @@ func (u *userService) Delete(user *models.User) error {
 
 func (u *userService) FindAllByIdIn(ids []int32) []*models.User {
 	return u.repository.FindAllByIdIn(ids)
+}
+
+func (u *userService) GetGroups(user *models.User) ([]*models.Group, error) {
+	groups, err := u.authorizerService.GetGroupsForUser(user.ID)
+	if err != nil {
+		return nil, err
+	}
+	user.Groups = groups
+	return groups, nil
+}
+
+func (u *userService) GetPermissions(user *models.User) ([]*models.Permission, error) {
+	panic("implement me")
 }
