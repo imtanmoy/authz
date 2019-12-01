@@ -8,7 +8,7 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/imtanmoy/authz/casbin"
+	"github.com/imtanmoy/authz/authorizer"
 	"github.com/imtanmoy/authz/db"
 	"github.com/imtanmoy/authz/logger"
 	"github.com/imtanmoy/authz/server"
@@ -29,12 +29,12 @@ var serveCmd = &cobra.Command{
 		}
 		logger.Info("Database Initiated...")
 
-		// initializing casbin
-		err = casbin.Init(db.DB)
+		// initializing authorizer
+		err = authorizer.Init(db.DB)
 		if err != nil {
-			logger.Fatalf("%s : %s", "Casbin Could not be initiated", err)
+			logger.Fatalf("%s : %s", "Authorizer Could not be initiated", err)
 		}
-		logger.Info("Casbin Initiated...")
+		logger.Info("Authorizer Initiated...")
 
 		// initializing server
 		server, err := server.NewServer()

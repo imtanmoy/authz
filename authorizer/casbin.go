@@ -1,4 +1,4 @@
-package casbin
+package authorizer
 
 import (
 	"github.com/casbin/casbin/v2"
@@ -6,7 +6,7 @@ import (
 	"github.com/go-pg/pg/v9"
 	"time"
 
-	"github.com/imtanmoy/authz/casbin/adapter"
+	"github.com/imtanmoy/authz/authorizer/adapter"
 )
 
 //Enforcer casbin Enforcer

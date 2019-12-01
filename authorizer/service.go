@@ -1,4 +1,4 @@
-package casbin
+package authorizer
 
 import (
 	"errors"
@@ -23,23 +23,23 @@ type Service interface {
 	DeleteGroup(id int32) error
 }
 
-type casbinService struct {
+type authorizerService struct {
 	db                   *pg.DB
 	userRepository       users.Repository
 	permissionRepository permissions.Repository
 }
 
-var _ Service = (*casbinService)(nil)
+var _ Service = (*authorizerService)(nil)
 
-func NewCasbinService(db *pg.DB) Service {
-	return &casbinService{
+func NewAuthorizerService(db *pg.DB) Service {
+	return &authorizerService{
 		db:                   db,
 		userRepository:       users.NewUserRepository(db),
 		permissionRepository: permissions.NewPermissionRepository(db),
 	}
 }
 
-func (c *casbinService) AddPermissionsForGroup(id int32, permissions []*models.Permission) error {
+func (c *authorizerService) AddPermissionsForGroup(id int32, permissions []*models.Permission) error {
 	groupId := fmt.Sprintf("group::%d", id)
 	for _, permission := range permissions {
 		permissionID := fmt.Sprintf("permission::%d", permission.ID)
@@ -51,7 +51,7 @@ func (c *casbinService) AddPermissionsForGroup(id int32, permissions []*models.P
 	return nil
 }
 
-func (c *casbinService) GetPermissionsForGroup(id int32) ([]*models.Permission, error) {
+func (c *authorizerService) GetPermissionsForGroup(id int32) ([]*models.Permission, error) {
 	groupId := fmt.Sprintf("group::%d", id)
 
 	permissionList, err := Enforcer.GetImplicitPermissionsForUser(groupId)
@@ -69,7 +69,7 @@ func (c *casbinService) GetPermissionsForGroup(id int32) ([]*models.Permission, 
 	return c.permissionRepository.FindAllByIdIn(pIds), nil
 }
 
-func (c *casbinService) RemovePermissionsForGroup(id int32, permissions []*models.Permission) error {
+func (c *authorizerService) RemovePermissionsForGroup(id int32, permissions []*models.Permission) error {
 	groupId := fmt.Sprintf("group::%d", id)
 	for _, permission := range permissions {
 		permissionID := fmt.Sprintf("permission::%d", permission.ID)
@@ -81,7 +81,7 @@ func (c *casbinService) RemovePermissionsForGroup(id int32, permissions []*model
 	return nil
 }
 
-func (c *casbinService) AddUsersForGroup(id int32, users []*models.User) error {
+func (c *authorizerService) AddUsersForGroup(id int32, users []*models.User) error {
 	groupId := fmt.Sprintf("group::%d", id)
 	for _, user := range users {
 		userID := fmt.Sprintf("user::%d", user.ID)
@@ -93,7 +93,7 @@ func (c *casbinService) AddUsersForGroup(id int32, users []*models.User) error {
 	return nil
 }
 
-func (c *casbinService) GetUsersForGroup(id int32) ([]*models.User, error) {
+func (c *authorizerService) GetUsersForGroup(id int32) ([]*models.User, error) {
 	groupId := fmt.Sprintf("group::%d", id)
 
 	userList, err := Enforcer.GetUsersForRole(groupId)
@@ -110,7 +110,7 @@ func (c *casbinService) GetUsersForGroup(id int32) ([]*models.User, error) {
 	return c.userRepository.FindAllByIdIn(uIds), nil
 }
 
-func (c *casbinService) RemoveUsersForGroup(id int32, users []*models.User) error {
+func (c *authorizerService) RemoveUsersForGroup(id int32, users []*models.User) error {
 	groupId := fmt.Sprintf("group::%d", id)
 	for _, user := range users {
 		userID := fmt.Sprintf("user::%d", user.ID)
@@ -122,7 +122,7 @@ func (c *casbinService) RemoveUsersForGroup(id int32, users []*models.User) erro
 	return nil
 }
 
-func (c *casbinService) DeleteGroup(id int32) error {
+func (c *authorizerService) DeleteGroup(id int32) error {
 	groupId := fmt.Sprintf("group::%d", id)
 	_, err := Enforcer.DeleteRole(groupId)
 	return err

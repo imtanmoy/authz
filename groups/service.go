@@ -2,7 +2,7 @@ package groups
 
 import (
 	"github.com/go-pg/pg/v9"
-	"github.com/imtanmoy/authz/casbin"
+	"github.com/imtanmoy/authz/authorizer"
 	"github.com/imtanmoy/authz/models"
 	"github.com/imtanmoy/authz/permissions"
 	"github.com/imtanmoy/authz/users"
@@ -25,7 +25,7 @@ type groupService struct {
 	repository           Repository
 	userRepository       users.Repository
 	permissionRepository permissions.Repository
-	casbinService        casbin.Service
+	authorizerService    authorizer.Service
 }
 
 var _ Service = (*groupService)(nil)
@@ -36,7 +36,7 @@ func NewGroupService(db *pg.DB) Service {
 		repository:           NewGroupRepository(db),
 		userRepository:       users.NewUserRepository(db),
 		permissionRepository: permissions.NewPermissionRepository(db),
-		casbinService:        casbin.NewCasbinService(db),
+		authorizerService:    authorizer.NewAuthorizerService(db),
 	}
 }
 
@@ -46,7 +46,7 @@ func (g *groupService) List(organization *models.Organization) ([]*models.Group,
 		return nil, err
 	}
 	for _, group := range groups {
-		userList, err := g.casbinService.GetUsersForGroup(group.ID)
+		userList, err := g.authorizerService.GetUsersForGroup(group.ID)
 		if err != nil {
 			return nil, err
 		}
@@ -54,7 +54,7 @@ func (g *groupService) List(organization *models.Organization) ([]*models.Group,
 	}
 
 	for _, group := range groups {
-		permissionList, err := g.casbinService.GetPermissionsForGroup(group.ID)
+		permissionList, err := g.authorizerService.GetPermissionsForGroup(group.ID)
 		if err != nil {
 			return nil, err
 		}
@@ -87,13 +87,13 @@ func (g *groupService) Create(
 	}
 	err = tx.Commit()
 	// add permissions for group
-	err = g.casbinService.AddPermissionsForGroup(group.ID, permissions)
+	err = g.authorizerService.AddPermissionsForGroup(group.ID, permissions)
 	if err != nil {
 		return nil, err
 	}
 
 	// add users for group
-	err = g.casbinService.AddUsersForGroup(group.ID, users)
+	err = g.authorizerService.AddUsersForGroup(group.ID, users)
 	if err != nil {
 		return nil, err
 	}
@@ -108,14 +108,14 @@ func (g *groupService) Find(ID int32) (*models.Group, error) {
 		return nil, err
 	}
 	// get user list
-	userList, err := g.casbinService.GetUsersForGroup(group.ID)
+	userList, err := g.authorizerService.GetUsersForGroup(group.ID)
 	if err != nil {
 		return nil, err
 	}
 	group.Users = userList
 
 	// get permission list
-	permissionList, err := g.casbinService.GetPermissionsForGroup(group.ID)
+	permissionList, err := g.authorizerService.GetPermissionsForGroup(group.ID)
 	if err != nil {
 		return nil, err
 	}
@@ -140,7 +140,7 @@ func (g *groupService) Update(group *models.Group, users []*models.User, permiss
 	}
 
 	// permission update
-	permissionList, err := g.casbinService.GetPermissionsForGroup(group.ID)
+	permissionList, err := g.authorizerService.GetPermissionsForGroup(group.ID)
 	if err != nil {
 		return err
 	}
@@ -159,7 +159,7 @@ func (g *groupService) Update(group *models.Group, users []*models.User, permiss
 	willBeAddedPermissions := utils.Minus(newPermissions, oldPermissions)
 	//willBeAddedPermissionModels := g.permissionRepository.FindAllByIdIn(willBeAddedPermissions)
 	willBeAddedPermissionModels := getPermissionModels(willBeAddedPermissions, permissions)
-	err = g.casbinService.AddPermissionsForGroup(group.ID, willBeAddedPermissionModels)
+	err = g.authorizerService.AddPermissionsForGroup(group.ID, willBeAddedPermissionModels)
 	if err != nil {
 		return err
 	}
@@ -167,14 +167,14 @@ func (g *groupService) Update(group *models.Group, users []*models.User, permiss
 	//delete permissions with deletePermissions
 	//deletePermissionModels := g.permissionRepository.FindAllByIdIn(deletePermissions)
 	deletePermissionModels := getPermissionModels(deletePermissions, permissionList)
-	err = g.casbinService.RemovePermissionsForGroup(group.ID, deletePermissionModels)
+	err = g.authorizerService.RemovePermissionsForGroup(group.ID, deletePermissionModels)
 	if err != nil {
 		return nil
 	}
 	group.Permissions = permissions
 
 	// user update
-	userList, err := g.casbinService.GetUsersForGroup(group.ID)
+	userList, err := g.authorizerService.GetUsersForGroup(group.ID)
 	if err != nil {
 		return err
 	}
@@ -194,7 +194,7 @@ func (g *groupService) Update(group *models.Group, users []*models.User, permiss
 	willBeAddedUsers := utils.Minus(newUsers, oldUsers)
 	//willBeAddedUserModels := g.userRepository.FindAllByIdIn(willBeAddedUsers)
 	willBeAddedUserModels := getUserModels(willBeAddedUsers, users)
-	err = g.casbinService.AddUsersForGroup(group.ID, willBeAddedUserModels)
+	err = g.authorizerService.AddUsersForGroup(group.ID, willBeAddedUserModels)
 	if err != nil {
 		return err
 	}
@@ -202,7 +202,7 @@ func (g *groupService) Update(group *models.Group, users []*models.User, permiss
 	//delete users from group
 	//deleteUsersModels := g.userRepository.FindAllByIdIn(deleteUsers)
 	deleteUsersModels := getUserModels(deleteUsers, userList)
-	err = g.casbinService.RemoveUsersForGroup(group.ID, deleteUsersModels)
+	err = g.authorizerService.RemoveUsersForGroup(group.ID, deleteUsersModels)
 	if err != nil {
 		return err
 	}
@@ -213,7 +213,7 @@ func (g *groupService) Update(group *models.Group, users []*models.User, permiss
 }
 
 func (g *groupService) Delete(group *models.Group) error {
-	err := g.casbinService.DeleteGroup(group.ID) // it will delete all permissions and users
+	err := g.authorizerService.DeleteGroup(group.ID) // it will delete all permissions and users
 	if err != nil {
 		return err
 	}
@@ -235,14 +235,14 @@ func (g *groupService) FindByIdAndOrganizationId(Id int32, Oid int32) (*models.G
 	}
 
 	// get user list
-	userList, err := g.casbinService.GetUsersForGroup(group.ID)
+	userList, err := g.authorizerService.GetUsersForGroup(group.ID)
 	if err != nil {
 		return nil, err
 	}
 	group.Users = userList
 
 	// get permission list
-	permissionList, err := g.casbinService.GetPermissionsForGroup(group.ID)
+	permissionList, err := g.authorizerService.GetPermissionsForGroup(group.ID)
 	if err != nil {
 		return nil, err
 	}
