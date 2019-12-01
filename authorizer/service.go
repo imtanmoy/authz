@@ -43,7 +43,7 @@ func (c *authorizerService) AddPermissionsForGroup(id int32, permissions []*mode
 	groupId := fmt.Sprintf("group::%d", id)
 	for _, permission := range permissions {
 		permissionID := fmt.Sprintf("permission::%d", permission.ID)
-		_, err := Enforcer.AddPermissionForUser(groupId, permissionID, permission.Action)
+		_, err := enforcer.AddPermissionForUser(groupId, permissionID, permission.Action)
 		if err != nil {
 			return err
 		}
@@ -54,7 +54,7 @@ func (c *authorizerService) AddPermissionsForGroup(id int32, permissions []*mode
 func (c *authorizerService) GetPermissionsForGroup(id int32) ([]*models.Permission, error) {
 	groupId := fmt.Sprintf("group::%d", id)
 
-	permissionList, err := Enforcer.GetImplicitPermissionsForUser(groupId)
+	permissionList, err := enforcer.GetImplicitPermissionsForUser(groupId)
 	if errors.Is(err, casbinerros.ERR_NAME_NOT_FOUND) {
 		return make([]*models.Permission, 0), nil
 	}
@@ -73,7 +73,7 @@ func (c *authorizerService) RemovePermissionsForGroup(id int32, permissions []*m
 	groupId := fmt.Sprintf("group::%d", id)
 	for _, permission := range permissions {
 		permissionID := fmt.Sprintf("permission::%d", permission.ID)
-		_, err := Enforcer.DeletePermissionForUser(groupId, permissionID, permission.Action)
+		_, err := enforcer.DeletePermissionForUser(groupId, permissionID, permission.Action)
 		if err != nil {
 			return err
 		}
@@ -85,7 +85,7 @@ func (c *authorizerService) AddUsersForGroup(id int32, users []*models.User) err
 	groupId := fmt.Sprintf("group::%d", id)
 	for _, user := range users {
 		userID := fmt.Sprintf("user::%d", user.ID)
-		_, err := Enforcer.AddRoleForUser(userID, groupId)
+		_, err := enforcer.AddRoleForUser(userID, groupId)
 		if err != nil {
 			return err
 		}
@@ -96,7 +96,7 @@ func (c *authorizerService) AddUsersForGroup(id int32, users []*models.User) err
 func (c *authorizerService) GetUsersForGroup(id int32) ([]*models.User, error) {
 	groupId := fmt.Sprintf("group::%d", id)
 
-	userList, err := Enforcer.GetUsersForRole(groupId)
+	userList, err := enforcer.GetUsersForRole(groupId)
 	if errors.Is(err, casbinerros.ERR_NAME_NOT_FOUND) {
 		return make([]*models.User, 0), nil
 	}
@@ -114,7 +114,7 @@ func (c *authorizerService) RemoveUsersForGroup(id int32, users []*models.User) 
 	groupId := fmt.Sprintf("group::%d", id)
 	for _, user := range users {
 		userID := fmt.Sprintf("user::%d", user.ID)
-		_, err := Enforcer.DeleteRoleForUser(userID, groupId)
+		_, err := enforcer.DeleteRoleForUser(userID, groupId)
 		if err != nil {
 			return err
 		}
@@ -124,6 +124,6 @@ func (c *authorizerService) RemoveUsersForGroup(id int32, users []*models.User) 
 
 func (c *authorizerService) DeleteGroup(id int32) error {
 	groupId := fmt.Sprintf("group::%d", id)
-	_, err := Enforcer.DeleteRole(groupId)
+	_, err := enforcer.DeleteRole(groupId)
 	return err
 }

@@ -9,8 +9,8 @@ import (
 	"github.com/imtanmoy/authz/authorizer/adapter"
 )
 
-//Enforcer casbin Enforcer
-var Enforcer *casbin.SyncedEnforcer
+//casbin enforcer
+var enforcer *casbin.SyncedEnforcer
 
 // Init initialze the Conf
 func Init(db *pg.DB) error {
@@ -41,11 +41,11 @@ func Init(db *pg.DB) error {
 	a := adapter.NewAdapter(db)
 
 	// Create the enforcer.
-	Enforcer, err = casbin.NewSyncedEnforcer(m, a)
+	enforcer, err = casbin.NewSyncedEnforcer(m, a)
 	if err != nil {
 		return err
 	}
-	// Enforcer.EnableLog(true)
-	Enforcer.StartAutoLoadPolicy(30 * time.Second)
+	// enforcer.EnableLog(true)
+	enforcer.StartAutoLoadPolicy(30 * time.Second)
 	return nil
 }
