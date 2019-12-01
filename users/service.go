@@ -14,11 +14,14 @@ type Service interface {
 	Delete(organization *models.User) error
 	Exists(ID int32) bool
 	FindAllByIdIn(ids []int32) []*models.User
+
+	GetGroups(user *models.User) ([]*models.Group, error)
+	GetPermissions(user *models.User) ([]*models.Permission, error)
 }
 
 type userService struct {
-	db         *pg.DB
-	repository Repository
+	db                *pg.DB
+	repository        Repository
 }
 
 var _ Service = (*userService)(nil)
@@ -66,4 +69,12 @@ func (u *userService) Delete(user *models.User) error {
 
 func (u *userService) FindAllByIdIn(ids []int32) []*models.User {
 	return u.repository.FindAllByIdIn(ids)
+}
+
+func (u *userService) GetGroups(user *models.User) ([]*models.Group, error) {
+	panic("implement me")
+}
+
+func (u *userService) GetPermissions(user *models.User) ([]*models.Permission, error) {
+	panic("implement me")
 }

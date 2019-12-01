@@ -2,7 +2,6 @@ package users
 
 import (
 	"context"
-	"fmt"
 	"net/http"
 
 	"github.com/go-chi/render"
@@ -208,13 +207,11 @@ func (u *userHandler) GetGroups(w http.ResponseWriter, r *http.Request) {
 		_ = render.Render(w, r, httputil.NewAPIError(422, "Request Can not be processed"))
 		return
 	}
-	//groups, err := u.service.GetGroups(user)
-	//if err != nil {
-	//	_ = render.Render(w, r, httputil.NewAPIError(err))
-	//	return
-	//}
-	fmt.Println(user)
-	//fmt.Println(groups)
+	_, err := u.service.GetGroups(user)
+	if err != nil {
+		_ = render.Render(w, r, httputil.NewAPIError(err))
+		return
+	}
 	if err := render.Render(w, r, NewUserResponse(user)); err != nil {
 		_ = render.Render(w, r, httputil.NewAPIError(err))
 		return
