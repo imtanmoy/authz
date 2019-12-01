@@ -1,6 +1,8 @@
 package users
 
 import (
+	"context"
+	"fmt"
 	"net/http"
 
 	"github.com/go-chi/render"
@@ -13,25 +15,48 @@ import (
 )
 
 type Handler interface {
+	UserCtx(next http.Handler) http.Handler
 	List(w http.ResponseWriter, r *http.Request)
 	Get(w http.ResponseWriter, r *http.Request)
 	Create(w http.ResponseWriter, r *http.Request)
 	Delete(w http.ResponseWriter, r *http.Request)
 	Update(w http.ResponseWriter, r *http.Request)
+
+	GetGroups(w http.ResponseWriter, r *http.Request)
+	GetPermissions(w http.ResponseWriter, r *http.Request)
 }
 
 type userHandler struct {
+	db                  *pg.DB
 	service             Service
 	organizationService organizations.Service
-	db                  *pg.DB
 }
+
+var _ Handler = (*userHandler)(nil)
 
 func NewUserHandler(db *pg.DB) Handler {
 	return &userHandler{
+		db:                  db,
 		service:             NewUserService(db),
 		organizationService: organizations.NewOrganizationService(db),
-		db:                  db,
 	}
+}
+
+func (u *userHandler) UserCtx(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		id, err := param.Int32(r, "id")
+		if err != nil {
+			_ = render.Render(w, r, httputil.NewAPIError(400, "Invalid request parameter", err))
+			return
+		}
+		user, err := u.service.Find(id)
+		if err != nil {
+			_ = render.Render(w, r, httputil.NewAPIError(404, "user not found", err))
+			return
+		}
+		ctx := context.WithValue(r.Context(), "user", user)
+		next.ServeHTTP(w, r.WithContext(ctx))
+	})
 }
 
 func (u *userHandler) List(w http.ResponseWriter, r *http.Request) {
@@ -176,4 +201,35 @@ func (u *userHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	render.NoContent(w, r)
 }
 
-var _ Handler = (*userHandler)(nil)
+func (u *userHandler) GetGroups(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	user, ok := ctx.Value("user").(*models.User)
+	if !ok {
+		_ = render.Render(w, r, httputil.NewAPIError(422, "Request Can not be processed"))
+		return
+	}
+	//groups, err := u.service.GetGroups(user)
+	//if err != nil {
+	//	_ = render.Render(w, r, httputil.NewAPIError(err))
+	//	return
+	//}
+	fmt.Println(user)
+	//fmt.Println(groups)
+	if err := render.Render(w, r, NewUserResponse(user)); err != nil {
+		_ = render.Render(w, r, httputil.NewAPIError(err))
+		return
+	}
+}
+
+func (u *userHandler) GetPermissions(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	user, ok := ctx.Value("user").(*models.User)
+	if !ok {
+		_ = render.Render(w, r, httputil.NewAPIError(422, "Request Can not be processed"))
+		return
+	}
+	if err := render.Render(w, r, NewUserResponse(user)); err != nil {
+		_ = render.Render(w, r, httputil.NewAPIError(err))
+		return
+	}
+}

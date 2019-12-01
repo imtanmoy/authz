@@ -25,7 +25,7 @@ type User struct {
 	Email          string `pg:"email,notnull,unique"`
 	OrganizationID int32  `pg:"organization_id,notnull"`
 	Organization   *Organization
-	//Groups         []*Group `pg:"-"`
+	Groups         []*Group `pg:"-"`
 }
 
 // Group represent groups table

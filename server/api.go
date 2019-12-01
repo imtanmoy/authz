@@ -66,6 +66,12 @@ func userRouter() http.Handler {
 		r.Get("/{id}", userHandler.Get)
 		r.Put("/{id}", userHandler.Update)
 		r.Delete("/{id}", userHandler.Delete)
+
+		r.Group(func(r chi.Router) {
+			r.Use(userHandler.UserCtx)
+			r.Get("/{id}/groups", userHandler.GetGroups)
+			r.Get("/{id}/permissions", userHandler.GetPermissions)
+		})
 	})
 
 	return r
