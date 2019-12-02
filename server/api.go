@@ -1,7 +1,7 @@
 package server
 
 import (
-	"github.com/imtanmoy/authz/groups"
+	"github.com/imtanmoy/authz/group"
 	"net/http"
 	"time"
 
@@ -79,7 +79,7 @@ func userRouter() http.Handler {
 
 func groupRouter() http.Handler {
 	r := chi.NewRouter()
-	groupHandler := groups.NewGroupHandler(db.DB)
+	groupHandler := group.NewGroupHandler(db.DB)
 	r.Use(groupHandler.OrganizationCtx)
 
 	r.Group(func(r chi.Router) {
