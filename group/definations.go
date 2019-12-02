@@ -19,7 +19,7 @@ func (g *GroupPayload) Bind(r *http.Request) error {
 	return nil
 }
 
-func (g *GroupPayload) validate() url.Values {
+func (g *GroupPayload) Validate() url.Values {
 	rules := govalidator.MapData{
 		"name": []string{"required"},
 	}

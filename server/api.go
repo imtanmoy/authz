@@ -1,7 +1,10 @@
 package server
 
 import (
-	"github.com/imtanmoy/authz/group"
+	"github.com/imtanmoy/authz/authorizer"
+	_groupDeliveryHttp "github.com/imtanmoy/authz/group/delivery/http"
+	_groupRepo "github.com/imtanmoy/authz/group/repository"
+	_groupUcase "github.com/imtanmoy/authz/group/usecase"
 	"net/http"
 	"time"
 
@@ -36,8 +39,15 @@ func New() (*chi.Mux, error) {
 	//routes.Routes(r)
 	r.Mount("/organizations", organizationRouter())
 	r.Mount("/users", userRouter())
-	r.Mount("/{oid}/groups", groupRouter())
+	//r.Mount("/{oid}/groups", groupRouter())
 
+	authorizerService := authorizer.NewAuthorizerService(db.DB)
+	organizationService := organizations.NewOrganizationService(db.DB)
+
+	groupRepo := _groupRepo.NewPgGroupRepository(db.DB)
+	timeoutContext := 30 * time.Millisecond * time.Second
+	gu := _groupUcase.NewGroupUsecase(groupRepo, timeoutContext, authorizerService)
+	_groupDeliveryHttp.NewGroupHandler(r, gu, organizationService)
 	return r, nil
 }
 
@@ -77,21 +87,21 @@ func userRouter() http.Handler {
 	return r
 }
 
-func groupRouter() http.Handler {
-	r := chi.NewRouter()
-	groupHandler := group.NewGroupHandler(db.DB)
-	r.Use(groupHandler.OrganizationCtx)
-
-	r.Group(func(r chi.Router) {
-		r.Get("/", groupHandler.List)
-		r.Post("/", groupHandler.Create)
-		r.Group(func(r chi.Router) {
-			r.Use(groupHandler.GroupCtx)
-			r.Get("/{id}", groupHandler.Get)
-			r.Put("/{id}", groupHandler.Update)
-			r.Delete("/{id}", groupHandler.Delete)
-		})
-	})
-
-	return r
-}
+//func groupRouter() http.Handler {
+//	r := chi.NewRouter()
+//	groupHandler := group.NewGroupHandler(db.DB)
+//	r.Use(groupHandler.OrganizationCtx)
+//
+//	r.Group(func(r chi.Router) {
+//		r.Get("/", groupHandler.List)
+//		r.Post("/", groupHandler.Create)
+//		r.Group(func(r chi.Router) {
+//			r.Use(groupHandler.GroupCtx)
+//			r.Get("/{id}", groupHandler.Get)
+//			r.Put("/{id}", groupHandler.Update)
+//			r.Delete("/{id}", groupHandler.Delete)
+//		})
+//	})
+//
+//	return r
+//}
