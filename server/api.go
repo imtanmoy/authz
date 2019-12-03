@@ -1,7 +1,7 @@
 package server
 
 import (
-	"github.com/imtanmoy/authz/authorizer"
+	_authorizerService "github.com/imtanmoy/authz/authorizer/service"
 	_groupDeliveryHttp "github.com/imtanmoy/authz/group/delivery/http"
 	_groupRepo "github.com/imtanmoy/authz/group/repository"
 	_groupUcase "github.com/imtanmoy/authz/group/usecase"
@@ -41,7 +41,7 @@ func New() (*chi.Mux, error) {
 	r.Mount("/users", userRouter())
 	//r.Mount("/{oid}/groups", groupRouter())
 
-	authorizerService := authorizer.NewAuthorizerService(db.DB)
+	authorizerService := _authorizerService.NewAuthorizerService(db.DB)
 	organizationService := organizations.NewOrganizationService(db.DB)
 
 	groupRepo := _groupRepo.NewPgGroupRepository(db.DB)

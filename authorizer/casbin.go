@@ -10,7 +10,7 @@ import (
 )
 
 //casbin enforcer
-var enforcer *casbin.SyncedEnforcer
+var Enforcer *casbin.SyncedEnforcer
 
 // Init initialze the Conf
 func Init(db *pg.DB) error {
@@ -41,11 +41,11 @@ func Init(db *pg.DB) error {
 	a := adapter.NewAdapter(db)
 
 	// Create the enforcer.
-	enforcer, err = casbin.NewSyncedEnforcer(m, a)
+	Enforcer, err = casbin.NewSyncedEnforcer(m, a)
 	if err != nil {
 		return err
 	}
 	// enforcer.EnableLog(true)
-	enforcer.StartAutoLoadPolicy(30 * time.Second)
+	Enforcer.StartAutoLoadPolicy(30 * time.Second)
 	return nil
 }

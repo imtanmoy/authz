@@ -84,12 +84,12 @@ func (g *groupUsecase) Store(ctx context.Context, gr *models.Group, users []*mod
 		return err
 	}
 	// add permissions for group
-	err = g.authorizerService.AddPermissionsForGroup(grp.ID, permissions)
+	err = g.authorizerService.AddPermissionsForGroup(ctx, grp.ID, permissions)
 	if err != nil {
 		return err
 	}
 	// add users for group
-	err = g.authorizerService.AddUsersForGroup(grp.ID, users)
+	err = g.authorizerService.AddUsersForGroup(ctx, grp.ID, users)
 	if err != nil {
 		return err
 	}
