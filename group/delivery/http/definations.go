@@ -1,4 +1,4 @@
-package group
+package http
 
 import (
 	"github.com/go-chi/render"

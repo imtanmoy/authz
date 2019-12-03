@@ -78,15 +78,31 @@ func (g *groupUsecase) Fetch(ctx context.Context, organizationId int32) ([]*mode
 	return groups, nil
 }
 
+func (g *groupUsecase) Store(ctx context.Context, gr *models.Group, users []*models.User, permissions []*models.Permission) error {
+	grp, err := g.groupRepo.Store(ctx, gr)
+	if err != nil {
+		return err
+	}
+	// add permissions for group
+	err = g.authorizerService.AddPermissionsForGroup(grp.ID, permissions)
+	if err != nil {
+		return err
+	}
+	// add users for group
+	err = g.authorizerService.AddUsersForGroup(grp.ID, users)
+	if err != nil {
+		return err
+	}
+	grp.Users = users
+	grp.Permissions = permissions
+	return nil
+}
+
 func (g *groupUsecase) GetByID(ctx context.Context, id int32) (*models.Group, error) {
 	panic("implement me")
 }
 
 func (g *groupUsecase) Update(ctx context.Context, gr *models.Group, users []*models.User, permissions []*models.Permission) error {
-	panic("implement me")
-}
-
-func (g *groupUsecase) Store(ctx context.Context, gr *models.Group, users []*models.User, permissions []*models.Permission) error {
 	panic("implement me")
 }
 

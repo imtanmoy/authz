@@ -68,7 +68,7 @@ func (gh *GroupHandler) Fetch(w http.ResponseWriter, r *http.Request) {
 		_ = render.Render(w, r, httputil.NewAPIError(err))
 		return
 	}
-	if err := render.RenderList(w, r, group.NewGroupListResponse(groups)); err != nil {
+	if err := render.RenderList(w, r, NewGroupListResponse(groups)); err != nil {
 		_ = render.Render(w, r, httputil.NewAPIError(err))
 		return
 	}
@@ -77,7 +77,6 @@ func (gh *GroupHandler) Fetch(w http.ResponseWriter, r *http.Request) {
 func (gh *GroupHandler) Store(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	if ctx == nil {
-		//ctx = context.Background()
 		_ = render.Render(w, r, httputil.NewAPIError(500, "Something went wrong"))
 		return
 	}
@@ -87,7 +86,7 @@ func (gh *GroupHandler) Store(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	data := &group.GroupPayload{}
+	data := &GroupPayload{}
 	if err := render.Bind(r, data); err != nil {
 		_ = render.Render(w, r, httputil.NewAPIError(422, "unable to decode the request content type"))
 		return
@@ -120,6 +119,22 @@ func (gh *GroupHandler) Store(w http.ResponseWriter, r *http.Request) {
 		_ = render.Render(w, r, httputil.NewAPIError(400, "Invalid Request", validationErrors))
 		return
 	}
+
+	var grp models.Group
+	grp.Name = data.Name
+	grp.Organization = organization
+	grp.OrganizationID = organization.ID
+
+	err = gh.GUsecase.Store(ctx, &grp, userList, permissionList)
+
+	if err != nil {
+		_ = render.Render(w, r, httputil.NewAPIError(err))
+		return
+	}
+
+	render.Status(r, http.StatusCreated)
+	_ = render.Render(w, r, NewGroupResponse(&grp))
+	return
 }
 
 func (gh *GroupHandler) GetByID(w http.ResponseWriter, r *http.Request) {
