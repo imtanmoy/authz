@@ -5,6 +5,7 @@ import (
 	"github.com/imtanmoy/authz/authorizer"
 	"github.com/imtanmoy/authz/group"
 	"github.com/imtanmoy/authz/models"
+	"golang.org/x/sync/errgroup"
 	"time"
 )
 
@@ -25,25 +26,54 @@ func NewGroupUsecase(g group.Repository, timeout time.Duration, authorizerServic
 	}
 }
 
+// populates each group with users
+func (g *groupUsecase) populateGroupsWithUsers(ctx context.Context, groups []*models.Group) error {
+	errs, _ := errgroup.WithContext(ctx)
+	for _, grp := range groups {
+		grpR := grp
+		errs.Go(func() error {
+			userList, err := g.authorizerService.GetUsersForGroup(grpR.ID)
+			if err != nil {
+				return err
+			}
+			grpR.Users = userList
+			return nil
+		})
+	}
+	return errs.Wait()
+}
+
+// populates each group with permissions
+func (g *groupUsecase) populateGroupsWithPermissions(ctx context.Context, groups []*models.Group) error {
+	errs, _ := errgroup.WithContext(ctx)
+	for _, grp := range groups {
+		grpR := grp
+		errs.Go(func() error {
+			permissionList, err := g.authorizerService.GetPermissionsForGroup(grpR.ID)
+			if err != nil {
+				return err
+			}
+			grpR.Permissions = permissionList
+			return nil
+		})
+	}
+	return errs.Wait()
+}
+
 func (g *groupUsecase) Fetch(ctx context.Context, organizationId int32) ([]*models.Group, error) {
 	groups, err := g.groupRepo.Fetch(ctx, organizationId)
 	if err != nil {
 		return nil, err
 	}
-	for _, gr := range groups {
-		userList, err := g.authorizerService.GetUsersForGroup(gr.ID)
-		if err != nil {
-			return nil, err
-		}
-		gr.Users = userList
+
+	err = g.populateGroupsWithUsers(ctx, groups)
+	if err != nil {
+		return nil, err
 	}
 
-	for _, gr := range groups {
-		permissionList, err := g.authorizerService.GetPermissionsForGroup(gr.ID)
-		if err != nil {
-			return nil, err
-		}
-		gr.Permissions = permissionList
+	err = g.populateGroupsWithPermissions(ctx, groups)
+	if err != nil {
+		return nil, err
 	}
 	return groups, nil
 }
