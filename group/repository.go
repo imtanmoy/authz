@@ -2,21 +2,21 @@ package group
 
 import (
 	"context"
-	"github.com/go-pg/pg/v9"
 	"github.com/imtanmoy/authz/models"
 )
 
 type Repository interface {
 	Fetch(ctx context.Context, organizationId int32) ([]*models.Group, error)
 	Store(ctx context.Context, group *models.Group) (*models.Group, error)
-	FindByName(ctx context.Context, organization *models.Organization, name string) (*models.Group, error)
 	Find(ctx context.Context, ID int32) (*models.Group, error)
 	Exists(ctx context.Context, ID int32) bool
-	FindByIdAndOrganizationId(ctx context.Context, Id int32, Oid int32) (*models.Group, error)
 	Delete(ctx context.Context, group *models.Group) error
-	Update(ctx context.Context, tx *pg.Tx, group *models.Group) error
+	Update(ctx context.Context, group *models.Group) error
 	FindAllByIdIn(ctx context.Context, ids []int32) []*models.Group
+	FindByIdAndOrganizationId(ctx context.Context, Id int32, Oid int32) (*models.Group, error)
+	FindByNameAndOrganizationId(ctx context.Context, name string, oid int32) (*models.Group, error)
 }
+
 //
 //type groupRepository struct {
 //	db *pg.DB

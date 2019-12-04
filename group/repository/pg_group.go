@@ -32,16 +32,6 @@ func (g *pgGroupRepository) Store(ctx context.Context, group *models.Group) (*mo
 	return group, err
 }
 
-func (g *pgGroupRepository) FindByName(ctx context.Context, organization *models.Organization, name string) (*models.Group, error) {
-	db := g.db.WithContext(ctx)
-	var grp models.Group
-	err := db.Model(&grp).
-		Where("name = ?", name).
-		Where("organization_id = ?", organization.ID).
-		First()
-	return &grp, err
-}
-
 func (g *pgGroupRepository) Find(ctx context.Context, ID int32) (*models.Group, error) {
 	db := g.db.WithContext(ctx)
 	if !g.Exists(ctx, ID) {
@@ -72,8 +62,9 @@ func (g *pgGroupRepository) FindByIdAndOrganizationId(ctx context.Context, Id in
 	return &grp, err
 }
 
-func (g *pgGroupRepository) Update(ctx context.Context, tx *pg.Tx, group *models.Group) error {
-	err := tx.Update(group)
+func (g *pgGroupRepository) Update(ctx context.Context, group *models.Group) error {
+	db := g.db.WithContext(ctx)
+	err := db.Update(group)
 	return err
 }
 
@@ -90,4 +81,14 @@ func (g *pgGroupRepository) FindAllByIdIn(ctx context.Context, ids []int32) []*m
 		Where("id in (?)", pg.In(ids)).
 		Select()
 	return groups
+}
+
+func (g *pgGroupRepository) FindByNameAndOrganizationId(ctx context.Context, name string, oid int32) (*models.Group, error) {
+	db := g.db.WithContext(ctx)
+	var grp models.Group
+	err := db.Model(&grp).
+		Where("name = ?", name).
+		Where("organization_id = ?", oid).
+		First()
+	return &grp, err
 }

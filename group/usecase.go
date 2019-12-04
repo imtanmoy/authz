@@ -11,8 +11,8 @@ type Usecase interface {
 	GetByID(ctx context.Context, id int32) (*models.Group, error)
 	Update(ctx context.Context, gr *models.Group, users []*models.User, permissions []*models.Permission) error
 	Store(ctx context.Context, gr *models.Group, users []*models.User, permissions []*models.Permission) error
-	Delete(ctx context.Context, id int32) error
+	Delete(ctx context.Context, gr *models.Group) error
 	Exists(ctx context.Context, ID int32) bool
-	FindByName(ctx context.Context, organization *models.Organization, name string) (*models.Group, error)
 	FindByIdAndOrganizationId(ctx context.Context, Id int32, Oid int32) (*models.Group, error)
+	FindByNameAndOrganizationId(ctx context.Context, name string, oid int32) (*models.Group, error)
 }

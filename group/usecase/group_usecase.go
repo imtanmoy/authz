@@ -5,6 +5,7 @@ import (
 	"github.com/imtanmoy/authz/authorizer"
 	"github.com/imtanmoy/authz/group"
 	"github.com/imtanmoy/authz/models"
+	"github.com/imtanmoy/authz/utils"
 	"golang.org/x/sync/errgroup"
 	"time"
 )
@@ -103,21 +104,138 @@ func (g *groupUsecase) GetByID(ctx context.Context, id int32) (*models.Group, er
 }
 
 func (g *groupUsecase) Update(ctx context.Context, gr *models.Group, users []*models.User, permissions []*models.Permission) error {
-	panic("implement me")
+	err := g.groupRepo.Update(ctx, gr)
+	if err != nil {
+		return err
+	}
+
+	// permission update
+	permissionList, err := g.authorizerService.GetPermissionsForGroup(gr.ID)
+	if err != nil {
+		return err
+	}
+	existingPermissions := make([]int32, 0)
+	for _, permission := range permissionList {
+		existingPermissions = append(existingPermissions, permission.ID)
+	}
+	newPermissions := make([]int32, 0)
+	for _, permission := range permissions {
+		newPermissions = append(newPermissions, permission.ID)
+	}
+	oldPermissions := utils.Intersection(existingPermissions, newPermissions)
+	deletePermissions := utils.Minus(existingPermissions, oldPermissions)
+
+	//create new permission with newPermissions
+	willBeAddedPermissions := utils.Minus(newPermissions, oldPermissions)
+	//willBeAddedPermissionModels := g.permissionRepository.FindAllByIdIn(willBeAddedPermissions)
+	willBeAddedPermissionModels := getPermissionModels(willBeAddedPermissions, permissions)
+	err = g.authorizerService.AddPermissionsForGroup(ctx, gr.ID, willBeAddedPermissionModels)
+	if err != nil {
+		return err
+	}
+
+	//delete permissions with deletePermissions
+	//deletePermissionModels := g.permissionRepository.FindAllByIdIn(deletePermissions)
+	deletePermissionModels := getPermissionModels(deletePermissions, permissionList)
+	err = g.authorizerService.RemovePermissionsForGroup(gr.ID, deletePermissionModels)
+	if err != nil {
+		return nil
+	}
+	gr.Permissions = permissions
+
+	// user update
+	userList, err := g.authorizerService.GetUsersForGroup(gr.ID)
+	if err != nil {
+		return err
+	}
+	// group user update
+	existingUsers := make([]int32, 0)
+	for _, user := range userList {
+		existingUsers = append(existingUsers, user.ID)
+	}
+	newUsers := make([]int32, 0)
+	for _, user := range users {
+		newUsers = append(newUsers, user.ID)
+	}
+	oldUsers := utils.Intersection(existingUsers, newUsers)
+	deleteUsers := utils.Minus(existingUsers, oldUsers)
+
+	// add users for group
+	willBeAddedUsers := utils.Minus(newUsers, oldUsers)
+	//willBeAddedUserModels := g.userRepository.FindAllByIdIn(willBeAddedUsers)
+	willBeAddedUserModels := getUserModels(willBeAddedUsers, users)
+	err = g.authorizerService.AddUsersForGroup(ctx, gr.ID, willBeAddedUserModels)
+	if err != nil {
+		return err
+	}
+
+	//delete users from group
+	//deleteUsersModels := g.userRepository.FindAllByIdIn(deleteUsers)
+	deleteUsersModels := getUserModels(deleteUsers, userList)
+	err = g.authorizerService.RemoveUsersForGroup(gr.ID, deleteUsersModels)
+	if err != nil {
+		return err
+	}
+
+	gr.Users = users
+
+	return nil
 }
 
-func (g *groupUsecase) Delete(ctx context.Context, id int32) error {
-	panic("implement me")
+func (g *groupUsecase) Delete(ctx context.Context, gr *models.Group) error {
+	err := g.authorizerService.DeleteGroup(gr.ID) // it will delete all permissions and users
+	if err != nil {
+		return err
+	}
+	return g.groupRepo.Delete(ctx, gr)
 }
 
 func (g *groupUsecase) Exists(ctx context.Context, ID int32) bool {
 	panic("implement me")
 }
 
-func (g *groupUsecase) FindByName(ctx context.Context, organization *models.Organization, name string) (*models.Group, error) {
-	return g.groupRepo.FindByName(ctx, organization, name)
+func (g *groupUsecase) FindByNameAndOrganizationId(ctx context.Context, name string, oid int32) (*models.Group, error) {
+	return g.groupRepo.FindByNameAndOrganizationId(ctx, name, oid)
 }
 
 func (g *groupUsecase) FindByIdAndOrganizationId(ctx context.Context, Id int32, Oid int32) (*models.Group, error) {
-	panic("implement me")
+	grp, err := g.groupRepo.FindByIdAndOrganizationId(ctx, Id, Oid)
+	if err != nil {
+		return nil, err
+	}
+
+	// get user list
+	userList, err := g.authorizerService.GetUsersForGroup(grp.ID)
+	if err != nil {
+		return nil, err
+	}
+	grp.Users = userList
+
+	// get permission list
+	permissionList, err := g.authorizerService.GetPermissionsForGroup(grp.ID)
+	if err != nil {
+		return nil, err
+	}
+	grp.Permissions = permissionList
+	return grp, nil
+}
+
+func getPermissionModels(ids []int32, permissions []*models.Permission) []*models.Permission {
+	list := make([]*models.Permission, 0)
+	for _, permission := range permissions {
+		if utils.Exists(ids, permission.ID) {
+			list = append(list, permission)
+		}
+	}
+	return list
+}
+
+func getUserModels(ids []int32, users []*models.User) []*models.User {
+	list := make([]*models.User, 0)
+	for _, user := range users {
+		if utils.Exists(ids, user.ID) {
+			list = append(list, user)
+		}
+	}
+	return list
 }
