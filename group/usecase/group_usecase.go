@@ -108,13 +108,25 @@ func (g *groupUsecase) Update(ctx context.Context, gr *models.Group, users []*mo
 	if err != nil {
 		return err
 	}
-	err = g.updatePermissionsForGroup(ctx, gr, permissions)
-	if err != nil {
-		return nil
+	ec1 := make(chan error, 1)
+	ec2 := make(chan error, 1)
+	go func(ec1 chan<- error) {
+		err := g.updatePermissionsForGroup(ctx, gr, permissions)
+		ec1 <- err
+	}(ec1)
+	go func(ec2 chan<- error) {
+		err := g.updateUsersForGroup(ctx, gr, users)
+		ec2 <- err
+	}(ec2)
+	err1 := <-ec1
+	err2 := <-ec2
+	//err = g.updatePermissionsForGroup(ctx, gr, permissions)
+	if err1 != nil {
+		return err1
 	}
-	err = g.updateUsersForGroup(ctx, gr, users)
-	if err != nil {
-		return nil
+	//err = g.updateUsersForGroup(ctx, gr, users)
+	if err2 != nil {
+		return err2
 	}
 	return nil
 }
