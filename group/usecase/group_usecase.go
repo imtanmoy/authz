@@ -187,7 +187,7 @@ func (g *groupUsecase) updatePermissionsForGroup(ctx context.Context, grp *model
 	//delete permissions with deletePermissions
 	//deletePermissionModels := g.permissionRepository.FindAllByIdIn(deletePermissions)
 	deletePermissionModels := getPermissionModels(deletePermissions, permissionList)
-	err = g.authorizerService.RemovePermissionsForGroup(grp.ID, deletePermissionModels) //TODO dont send the model
+	err = g.authorizerService.RemovePermissionsForGroup(ctx, grp.ID, deletePermissionModels) //TODO dont send the model
 	if err != nil {
 		return err
 	}
@@ -226,7 +226,7 @@ func (g *groupUsecase) updateUsersForGroup(ctx context.Context, grp *models.Grou
 	//delete users from group
 	//deleteUsersModels := g.userRepository.FindAllByIdIn(deleteUsers)
 	deleteUsersModels := getUserModels(deleteUsers, userList)
-	err = g.authorizerService.RemoveUsersForGroup(grp.ID, deleteUsersModels)
+	err = g.authorizerService.RemoveUsersForGroup(ctx, grp.ID, deleteUsersModels)
 	if err != nil {
 		return err
 	}

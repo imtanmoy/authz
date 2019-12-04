@@ -37,7 +37,8 @@ func (c *authorizerService) AddPermissionsForGroup(ctx context.Context, id int32
 		p := permission
 		errs.Go(func() error {
 			permissionID := fmt.Sprintf("permission::%d", p.ID)
-			_, err := authorizer.Enforcer.AddPermissionForUser(groupId, permissionID, p.Action)
+			pAction := p.Action
+			_, err := authorizer.Enforcer.AddPermissionForUser(groupId, permissionID, pAction)
 			if err != nil {
 				return err
 			}
@@ -65,16 +66,22 @@ func (c *authorizerService) GetPermissionsForGroup(id int32) ([]*models.Permissi
 	return c.permissionRepository.FindAllByIdIn(pIds), nil
 }
 
-func (c *authorizerService) RemovePermissionsForGroup(id int32, permissions []*models.Permission) error {
+func (c *authorizerService) RemovePermissionsForGroup(ctx context.Context, id int32, permissions []*models.Permission) error {
+	errs, _ := errgroup.WithContext(ctx)
 	groupId := fmt.Sprintf("group::%d", id)
 	for _, permission := range permissions {
-		permissionID := fmt.Sprintf("permission::%d", permission.ID)
-		_, err := authorizer.Enforcer.DeletePermissionForUser(groupId, permissionID, permission.Action)
-		if err != nil {
-			return err
-		}
+		p := permission
+		errs.Go(func() error {
+			permissionID := fmt.Sprintf("permission::%d", p.ID)
+			pAction := p.Action
+			_, err := authorizer.Enforcer.DeletePermissionForUser(groupId, permissionID, pAction)
+			if err != nil {
+				return err
+			}
+			return nil
+		})
 	}
-	return nil
+	return errs.Wait()
 }
 
 func (c *authorizerService) AddUsersForGroup(ctx context.Context, id int32, users []*models.User) error {
@@ -111,16 +118,21 @@ func (c *authorizerService) GetUsersForGroup(id int32) ([]*models.User, error) {
 	return c.userRepository.FindAllByIdIn(uIds), nil
 }
 
-func (c *authorizerService) RemoveUsersForGroup(id int32, users []*models.User) error {
+func (c *authorizerService) RemoveUsersForGroup(ctx context.Context, id int32, users []*models.User) error {
+	errs, _ := errgroup.WithContext(ctx)
 	groupId := fmt.Sprintf("group::%d", id)
 	for _, user := range users {
-		userID := fmt.Sprintf("user::%d", user.ID)
-		_, err := authorizer.Enforcer.DeleteRoleForUser(userID, groupId)
-		if err != nil {
-			return err
-		}
+		u := user
+		errs.Go(func() error {
+			userID := fmt.Sprintf("user::%d", u.ID)
+			_, err := authorizer.Enforcer.DeleteRoleForUser(userID, groupId)
+			if err != nil {
+				return err
+			}
+			return nil
+		})
 	}
-	return nil
+	return errs.Wait()
 }
 
 func (c *authorizerService) DeleteGroup(id int32) error {
