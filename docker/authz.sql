@@ -72,14 +72,14 @@ ALTER TABLE permissions
 
 
 INSERT INTO organizations (id, name)
-VALUES (1, 'Cramstack Ltd');
+VALUES (1, 'Example Ltd');
 
 INSERT INTO users(id, email, organization_id)
-VALUES (1, 'admin@cramstack.com', 1);
+VALUES (1, 'admin@example.com', 1);
 
 
 INSERT INTO organizations (id, name)
-VALUES (2, 'Cramstack2 Ltd');
+VALUES (2, 'Example2 Ltd');
 
 INSERT INTO groups (id, name, organization_id)
 VALUES (1, 'ADMIN', 1);

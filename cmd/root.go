@@ -21,8 +21,8 @@ func init() {
 
 var rootCmd = &cobra.Command{
 	Use:   "Root",
-	Short: "Cramstack Authz",
-	Long:  "Cramstack Authz service for authorization",
+	Short: "Authz",
+	Long:  "Authz service for authorization",
 	Run: func(cmd *cobra.Command, args []string) {
 		_ = cmd.Help()
 	},
