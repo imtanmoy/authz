@@ -2,6 +2,7 @@ package users
 
 import (
 	"context"
+	"github.com/imtanmoy/authz/authorizer"
 	"net/http"
 
 	"github.com/go-chi/render"
@@ -33,10 +34,10 @@ type userHandler struct {
 
 var _ Handler = (*userHandler)(nil)
 
-func NewUserHandler(db *pg.DB) Handler {
+func NewUserHandler(db *pg.DB, authorizationService authorizer.Service) Handler {
 	return &userHandler{
 		db:                  db,
-		service:             NewUserService(db),
+		service:             NewUserService(db, authorizationService),
 		organizationService: organizations.NewOrganizationService(db),
 	}
 }
@@ -223,6 +224,11 @@ func (u *userHandler) GetPermissions(w http.ResponseWriter, r *http.Request) {
 	user, ok := ctx.Value("user").(*models.User)
 	if !ok {
 		_ = render.Render(w, r, httputil.NewAPIError(422, "Request Can not be processed"))
+		return
+	}
+	_, err := u.service.GetPermissions(user)
+	if err != nil {
+		_ = render.Render(w, r, httputil.NewAPIError(err))
 		return
 	}
 	if err := render.Render(w, r, NewUserResponse(user)); err != nil {

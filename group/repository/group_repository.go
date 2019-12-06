@@ -8,31 +8,31 @@ import (
 	"github.com/imtanmoy/authz/models"
 )
 
-type pgGroupRepository struct {
+type groupRepository struct {
 	db *pg.DB
 }
 
-var _ group.Repository = (*pgGroupRepository)(nil)
+var _ group.Repository = (*groupRepository)(nil)
 
-// NewPgGroupRepository will create an object that represent the group.Repository interface
-func NewPgGroupRepository(db *pg.DB) group.Repository {
-	return &pgGroupRepository{db}
+// NewRepository will create an object that represent the group.Repository interface
+func NewRepository(db *pg.DB) group.Repository {
+	return &groupRepository{db}
 }
 
-func (g *pgGroupRepository) Fetch(ctx context.Context, organizationId int32) ([]*models.Group, error) {
+func (g *groupRepository) Fetch(ctx context.Context, organizationId int32) ([]*models.Group, error) {
 	db := g.db.WithContext(ctx)
 	var groups []*models.Group
 	err := db.Model(&groups).Where("organization_id = ?", organizationId).Relation("Organization").Select()
 	return groups, err
 }
 
-func (g *pgGroupRepository) Store(ctx context.Context, group *models.Group) (*models.Group, error) {
+func (g *groupRepository) Store(ctx context.Context, group *models.Group) (*models.Group, error) {
 	db := g.db.WithContext(ctx)
 	_, err := db.Model(group).Returning("*").Insert()
 	return group, err
 }
 
-func (g *pgGroupRepository) Find(ctx context.Context, ID int32) (*models.Group, error) {
+func (g *groupRepository) Find(ctx context.Context, ID int32) (*models.Group, error) {
 	db := g.db.WithContext(ctx)
 	if !g.Exists(ctx, ID) {
 		return nil, errors.New("group not found")
@@ -42,7 +42,7 @@ func (g *pgGroupRepository) Find(ctx context.Context, ID int32) (*models.Group, 
 	return &grp, err
 }
 
-func (g *pgGroupRepository) Exists(ctx context.Context, ID int32) bool {
+func (g *groupRepository) Exists(ctx context.Context, ID int32) bool {
 	db := g.db.WithContext(ctx)
 	var num int32
 	_, err := db.Query(pg.Scan(&num), "SELECT id from groups where id = ?", ID)
@@ -52,7 +52,7 @@ func (g *pgGroupRepository) Exists(ctx context.Context, ID int32) bool {
 	return num == ID
 }
 
-func (g *pgGroupRepository) FindByIdAndOrganizationId(ctx context.Context, Id int32, Oid int32) (*models.Group, error) {
+func (g *groupRepository) FindByIdAndOrganizationId(ctx context.Context, Id int32, Oid int32) (*models.Group, error) {
 	db := g.db.WithContext(ctx)
 	var grp models.Group
 	err := db.Model(&grp).
@@ -62,19 +62,19 @@ func (g *pgGroupRepository) FindByIdAndOrganizationId(ctx context.Context, Id in
 	return &grp, err
 }
 
-func (g *pgGroupRepository) Update(ctx context.Context, group *models.Group) error {
+func (g *groupRepository) Update(ctx context.Context, group *models.Group) error {
 	db := g.db.WithContext(ctx)
 	err := db.Update(group)
 	return err
 }
 
-func (g *pgGroupRepository) Delete(ctx context.Context, group *models.Group) error {
+func (g *groupRepository) Delete(ctx context.Context, group *models.Group) error {
 	db := g.db.WithContext(ctx)
 	err := db.Delete(group)
 	return err
 }
 
-func (g *pgGroupRepository) FindAllByIdIn(ctx context.Context, ids []int32) []*models.Group {
+func (g *groupRepository) FindAllByIdIn(ctx context.Context, ids []int32) []*models.Group {
 	db := g.db.WithContext(ctx)
 	var groups []*models.Group
 	_ = db.Model(&groups). // TODO err handling
@@ -83,7 +83,7 @@ func (g *pgGroupRepository) FindAllByIdIn(ctx context.Context, ids []int32) []*m
 	return groups
 }
 
-func (g *pgGroupRepository) FindByNameAndOrganizationId(ctx context.Context, name string, oid int32) (*models.Group, error) {
+func (g *groupRepository) FindByNameAndOrganizationId(ctx context.Context, name string, oid int32) (*models.Group, error) {
 	db := g.db.WithContext(ctx)
 	var grp models.Group
 	err := db.Model(&grp).

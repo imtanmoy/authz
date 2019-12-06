@@ -2,6 +2,7 @@ package users
 
 import (
 	"github.com/go-pg/pg/v9"
+	"github.com/imtanmoy/authz/authorizer"
 	"github.com/imtanmoy/authz/models"
 )
 
@@ -20,16 +21,18 @@ type Service interface {
 }
 
 type userService struct {
-	db                *pg.DB
-	repository        Repository
+	db                   *pg.DB
+	repository           Repository
+	authorizationService authorizer.Service
 }
 
 var _ Service = (*userService)(nil)
 
-func NewUserService(db *pg.DB) Service {
+func NewUserService(db *pg.DB, authorizationService authorizer.Service) Service {
 	return &userService{
-		repository: NewUserRepository(db),
-		db:         db,
+		repository:           NewUserRepository(db),
+		db:                   db,
+		authorizationService: authorizationService,
 	}
 }
 
@@ -72,9 +75,18 @@ func (u *userService) FindAllByIdIn(ids []int32) []*models.User {
 }
 
 func (u *userService) GetGroups(user *models.User) ([]*models.Group, error) {
-	panic("implement me")
+	groups, err := u.authorizationService.GetGroupsForUser(user.ID)
+	user.Groups = groups
+	if err != nil {
+		return nil, err
+	}
+	return groups, nil
 }
 
 func (u *userService) GetPermissions(user *models.User) ([]*models.Permission, error) {
-	panic("implement me")
+	permissionList, err := u.authorizationService.GetPermissionsForUser(user.ID)
+	if err != nil {
+		return nil, err
+	}
+	return permissionList, nil
 }

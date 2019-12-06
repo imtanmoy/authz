@@ -1,10 +1,12 @@
 package server
 
 import (
+	"github.com/imtanmoy/authz/authorizer"
 	_authorizerService "github.com/imtanmoy/authz/authorizer/service"
 	_groupDeliveryHttp "github.com/imtanmoy/authz/group/delivery/http"
 	_groupRepo "github.com/imtanmoy/authz/group/repository"
 	_groupUcase "github.com/imtanmoy/authz/group/usecase"
+	"github.com/imtanmoy/authz/permissions"
 	"net/http"
 	"time"
 
@@ -36,17 +38,21 @@ func New() (*chi.Mux, error) {
 		_, _ = w.Write([]byte("pong"))
 	})
 
+	timeoutContext := 30 * time.Millisecond * time.Second
+
+	groupRepo := _groupRepo.NewRepository(db.DB)
+	permissionRepo := permissions.NewPermissionRepository(db.DB)
+	userRepo := users.NewUserRepository(db.DB)
+
+	organizationService := organizations.NewOrganizationService(db.DB)
+	authorizerService := _authorizerService.NewAuthorizerService(db.DB, userRepo, permissionRepo, groupRepo)
+	gu := _groupUcase.NewGroupUsecase(groupRepo, timeoutContext, authorizerService)
+
 	//routes.Routes(r)
 	r.Mount("/organizations", organizationRouter())
-	r.Mount("/users", userRouter())
+	r.Mount("/users", userRouter(authorizerService))
 	//r.Mount("/{oid}/groups", groupRouter())
 
-	authorizerService := _authorizerService.NewAuthorizerService(db.DB)
-	organizationService := organizations.NewOrganizationService(db.DB)
-
-	groupRepo := _groupRepo.NewPgGroupRepository(db.DB)
-	timeoutContext := 30 * time.Millisecond * time.Second
-	gu := _groupUcase.NewGroupUsecase(groupRepo, timeoutContext, authorizerService)
 	_groupDeliveryHttp.NewGroupHandler(r, gu, organizationService)
 	return r, nil
 }
@@ -66,9 +72,9 @@ func organizationRouter() http.Handler {
 	return r
 }
 
-func userRouter() http.Handler {
+func userRouter(authorizerService authorizer.Service) http.Handler {
 	r := chi.NewRouter()
-	userHandler := users.NewUserHandler(db.DB)
+	userHandler := users.NewUserHandler(db.DB, authorizerService)
 
 	r.Group(func(r chi.Router) {
 		r.Get("/", userHandler.List)

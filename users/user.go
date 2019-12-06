@@ -16,25 +16,29 @@ type organizationResponse struct {
 	Name string `json:"name"`
 }
 
-type groupResponse struct {
+type GroupResponse struct {
 	ID        int32     `json:"id"`
 	Name      string    `json:"name"`
 	CreatedAt time.Time `json:"created_at"`
+}
+
+func (g *GroupResponse) Render(w http.ResponseWriter, r *http.Request) error {
+	return nil
 }
 
 type UserResponse struct {
 	ID           int32                 `json:"id"`
 	Email        string                `json:"email"`
 	Organization *organizationResponse `json:"organization"`
-	Groups       []*groupResponse      `json:"groups"`
+	Groups       []*GroupResponse      `json:"groups"`
 }
 
 func (u *UserResponse) Render(w http.ResponseWriter, r *http.Request) error {
 	return nil
 }
 
-func newGroupsResponse(group *models.Group) *groupResponse {
-	return &groupResponse{
+func NewGroupResponse(group *models.Group) *GroupResponse {
+	return &GroupResponse{
 		ID:        group.ID,
 		Name:      group.Name,
 		CreatedAt: group.CreatedAt,
@@ -42,10 +46,10 @@ func newGroupsResponse(group *models.Group) *groupResponse {
 }
 
 func NewUserResponse(user *models.User) *UserResponse {
-	var groups []*groupResponse
-	//for _, group := range user.Groups {
-	//	groups = append(groups, newGroupsResponse(group))
-	//}
+	var groups []*GroupResponse
+	for _, group := range user.Groups {
+		groups = append(groups, NewGroupResponse(group))
+	}
 	return &UserResponse{
 		ID:     user.ID,
 		Email:  user.Email,
@@ -86,6 +90,14 @@ func NewUserListResponse(users []*models.User) []render.Renderer {
 	var list []render.Renderer
 	for _, user := range users {
 		list = append(list, NewUserResponse(user))
+	}
+	return list
+}
+
+func NewGroupListResponse(groups []*models.Group) []render.Renderer {
+	var list []render.Renderer
+	for _, grp := range groups {
+		list = append(list, NewGroupResponse(grp))
 	}
 	return list
 }

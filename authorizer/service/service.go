@@ -7,6 +7,7 @@ import (
 	casbinerros "github.com/casbin/casbin/v2/errors"
 	"github.com/go-pg/pg/v9"
 	"github.com/imtanmoy/authz/authorizer"
+	"github.com/imtanmoy/authz/group"
 	"github.com/imtanmoy/authz/models"
 	"github.com/imtanmoy/authz/permissions"
 	"github.com/imtanmoy/authz/users"
@@ -18,15 +19,17 @@ type authorizerService struct {
 	db                   *pg.DB
 	userRepository       users.Repository
 	permissionRepository permissions.Repository
+	groupRepository      group.Repository
 }
 
 var _ authorizer.Service = (*authorizerService)(nil)
 
-func NewAuthorizerService(db *pg.DB) authorizer.Service {
+func NewAuthorizerService(db *pg.DB, userRepository users.Repository, permissionRepository permissions.Repository, groupRepository group.Repository) authorizer.Service {
 	return &authorizerService{
 		db:                   db,
-		userRepository:       users.NewUserRepository(db),
-		permissionRepository: permissions.NewPermissionRepository(db),
+		userRepository:       userRepository,
+		permissionRepository: permissionRepository,
+		groupRepository:      groupRepository,
 	}
 }
 
@@ -146,7 +149,12 @@ func (c *authorizerService) AddPermissionsForUser(id int32, permissions []*model
 }
 
 func (c *authorizerService) GetPermissionsForUser(id int32) ([]*models.Permission, error) {
-	panic("implement me")
+	userID := fmt.Sprintf("user::%d", id)
+	permissionList := authorizer.Enforcer.GetPermissionsForUser(userID)
+	for _, p := range permissionList {
+		fmt.Println(p)
+	}
+	return make([]*models.Permission, 0), nil
 }
 
 func (c *authorizerService) RemovePermissionsForUser(id int32, permissions []*models.Permission) error {
@@ -158,7 +166,20 @@ func (c *authorizerService) AddGroupsForUser(id int32, groups []*models.Group) e
 }
 
 func (c *authorizerService) GetGroupsForUser(id int32) ([]*models.Group, error) {
-	panic("implement me")
+	userID := fmt.Sprintf("user::%d", id)
+	groupList, err := authorizer.Enforcer.GetRolesForUser(userID)
+	if errors.Is(err, casbinerros.ERR_NAME_NOT_FOUND) {
+		return make([]*models.Group, 0), nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	var gIds []int32
+	for _, grp := range groupList {
+		gIds = append(gIds, utils.GetIntID(grp))
+	}
+	ctx := context.Background()
+	return c.groupRepository.FindAllByIdIn(ctx, gIds), nil
 }
 
 func (c *authorizerService) RemoveGroupsForUser(id int32, groups []*models.Group) error {
